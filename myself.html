@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人主页 - 校园寻物系统</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        background-color: #90f5ddbd;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .title {
+        background-color: #ffffff;
+        color: #549687;
+        text-align: center;
+        padding: 15px 0;
+        width: 100%;
+        font-size: 24px;
+        border-radius: 0 0 15px 15px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .user-info {
+        background-color: #549687;
+        color: white;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .user-info span {
+        font-size: 16px;
+      }
+
+      .logout-btn {
+        background-color: #b71d1d90;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .logout-btn:hover {
+        background-color: #8e2f2f;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .main-content {
+        flex: 1;
+        padding: 30px 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 1200px;
+        background-color: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
+
+      .page-title {
+        text-align: center;
+        color: #333;
+        margin-bottom: 30px;
+        font-size: 24px;
+        border-bottom: 2px solid #549687;
+        padding-bottom: 15px;
+      }
+
+      .info-card {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        padding: 25px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        background-color: #f9fffe;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background-color: #549687;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 40px;
+        font-weight: bold;
+        box-shadow: 0 4px 12px rgba(84, 150, 135, 0.3);
+      }
+
+      .info-detail {
+        flex: 1;
+        min-width: 250px;
+      }
+
+      .info-item {
+        margin-bottom: 15px;
+        font-size: 16px;
+        color: #555;
+        display: flex;
+        align-items: center;
+      }
+
+      .info-item label {
+        font-weight: 600;
+        color: #333;
+        margin-right: 12px;
+        min-width: 80px;
+      }
+
+      .info-btn-group {
+        display: flex;
+        gap: 15px;
+        margin-top: 20px;
+      }
+
+      .tab-nav {
+        display: flex;
+        border-bottom: 1px solid #e0e0e0;
+        margin-bottom: 25px;
+        gap: 10px;
+      }
+
+      .tab-item {
+        padding: 12px 25px;
+        font-size: 16px;
+        color: #666;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s;
+        border-radius: 8px 8px 0 0;
+        background-color: #f0f9f7;
+      }
+
+      .tab-item:hover {
+        background-color: #e1f3ef;
+        color: #549687;
+      }
+
+      .tab-item.active {
+        color: white;
+        background-color: #549687;
+        border-bottom-color: #478073;
+        font-weight: 600;
+      }
+
+      .publish-list {
+        display: none;
+      }
+
+      .publish-list.active {
+        display: block;
+      }
+
+      .publish-item {
+        padding: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        transition: box-shadow 0.3s;
+        background-color: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .publish-item:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .publish-item h3 {
+        color: #333;
+        font-size: 18px;
+        margin-bottom: 12px;
+      }
+
+      .publish-item p {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 10px;
+        line-height: 1.6;
+      }
+
+      .publish-item .item-tag {
+        display: inline-block;
+        padding: 4px 12px;
+        background-color: #f0f9f7;
+        color: #549687;
+        border-radius: 15px;
+        font-size: 12px;
+        margin-right: 10px;
+        font-weight: 500;
+        border: 1px solid #e1f3ef;
+      }
+
+      .publish-item .item-btn-group {
+        margin-top: 15px;
+        display: flex;
+        gap: 10px;
+      }
+
+      .password-form {
+        display: none;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .password-form.active {
+        display: block;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        font-weight: 600;
+        color: #555;
+        font-size: 14px;
+      }
+
+      .form-group input {
+        padding: 12px 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        outline: none;
+        transition: border-color 0.3s;
+      }
+
+      .form-group input:focus {
+        border-color: #549687;
+        box-shadow: 0 0 0 2px rgba(84, 150, 135, 0.2);
+      }
+
+      .btn {
+        padding: 10px 25px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn-primary {
+        background-color: #549687;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: #478073;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn-secondary {
+        background-color: #e1f3ef;
+        color: #549687;
+        border: 1px solid #549687;
+      }
+
+      .btn-secondary:hover {
+        background-color: #549687;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn-danger {
+        background-color: #d9534f;
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background-color: #c9302c;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .page-foot {
+        background-color: #549687;
+        color: white;
+        text-align: center;
+        padding: 20px 0;
+        width: 100%;
+        margin-top: auto;
+      }
+
+      .copyright {
+        font-size: 14px;
+        opacity: 0.9;
+      }
+
+      .empty-state {
+        text-align: center;
+        color: #666;
+        padding: 50px;
+        background-color: white;
+        border-radius: 10px;
+        width: 100%;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
+.title-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+      }
+      
+      .back-to-home {
+        color: white;
+        background-color: #549687;
+        padding: 8px 15px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.3s ease;
+        font-weight: 500;
+      }
+      
+      .back-to-home:hover {
+        background-color: #478073;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+      
+      .title-placeholder {
+        width: 100px; /* 占位符，保持对称 */
+      }
+      /* 响应式设计 */
+      @media (max-width: 768px) {
+        .info-card {
+          flex-direction: column;
+          text-align: center;
+          gap: 20px;
+        }
+
+        .info-item {
+          justify-content: center;
+          flex-direction: column;
+          align-items: center;
+          gap: 5px;
+        }
+
+        .info-item label {
+          min-width: auto;
+        }
+
+        .info-btn-group {
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+
+        .tab-nav {
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+
+        .tab-item {
+          flex: 1;
+          text-align: center;
+          min-width: 120px;
+        }
+
+        .publish-item .item-btn-group {
+          flex-direction: column;
+        }
+
+        .btn {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .main-content {
+          padding: 20px 15px;
+        }
+
+        .container {
+          padding: 20px;
+        }
+
+        .page-title {
+          font-size: 20px;
+        }
+
+        .avatar {
+          width: 100px;
+          height: 100px;
+          font-size: 32px;
+        }
+      }
+    </style>
+    <script>
+      window.onload = function () {
+        const isLoggedIn = localStorage.getItem("isLoggedIn");
+        const username = localStorage.getItem("username");
+        const isAdmin = localStorage.getItem("isAdmin");
+        
+        if (isLoggedIn !== "true" || !username) {
+          alert("请先登录");
+          window.location.href = "login.html";
+          return;
+        }
+
+        // 显示当前用户
+        document.getElementById("usernameDisplay").textContent = username;
+        if (isAdmin === "true") {
+          document.getElementById("usernameDisplay").innerHTML = 
+            username + ' <span style="color:#ff9800; font-size:12px;">(管理员)</span>';
+        }
+
+        // 标签切换功能
+        const tabItems = document.querySelectorAll('.tab-item');
+        tabItems.forEach(tab => {
+          tab.addEventListener('click', function() {
+            // 移除所有active类
+            tabItems.forEach(t => t.classList.remove('active'));
+            // 添加当前active类
+            this.classList.add('active');
+            
+            // 隐藏所有内容
+            document.querySelectorAll('.content-section').forEach(section => {
+              section.classList.remove('active');
+            });
+            
+            // 显示对应内容
+            const targetId = this.getAttribute('data-target');
+            document.getElementById(targetId).classList.add('active');
+          });
+        });
+
+        // 默认激活第一个标签
+        if (tabItems.length > 0) {
+          tabItems[0].classList.add('active');
+          const firstTarget = tabItems[0].getAttribute('data-target');
+          if (firstTarget) {
+            document.getElementById(firstTarget).classList.add('active');
+          }
+        }
+
+        // 模拟加载用户发布的帖子
+        loadUserPosts();
+      };
+
+      function logout() {
+        localStorage.removeItem("isLoggedIn");
+        localStorage.removeItem("username");
+        localStorage.removeItem("loginTime");
+        localStorage.removeItem("isAdmin");
+        alert("已退出登录");
+        window.location.href = "login.html";
+      }
+
+      function loadUserPosts() {
+        // 模拟从服务器获取用户发布的帖子
+        const posts = [
+          {
+            title: "寻找丢失的校园卡",
+            content: "昨天在图书馆一楼遗失校园卡，姓名：张三，学号：2024212886，捡到请联系，非常感谢！",
+            location: "图书馆",
+            time: "2026-03-18 14:30",
+            status: "待认领",
+            type: "寻物"
+          },
+          {
+            title: "捡到一个黑色钱包",
+            content: "在食堂门口捡到一个黑色钱包，内有身份证、银行卡若干，请失主联系我核实信息后领取。",
+            location: "中心食堂",
+            time: "2026-03-18 10:15",
+            status: "待认领",
+            type: "招领"
+          }
+        ];
+
+        const publishList = document.getElementById('publishList');
+        if (publishList && posts.length > 0) {
+          publishList.innerHTML = '';
+          posts.forEach(post => {
+            const postElement = document.createElement('div');
+            postElement.className = 'publish-item';
+            postElement.innerHTML = `
+              <h3>${post.title}</h3>
+              <p class="item-type"><span class="item-tag">${post.type}</span><span class="item-tag">${post.status}</span>
+              <p class="post-info">
+                <span class="post-place">${post.location}</span>
+                <span class="post-time">${post.time}</span>
+              
+              <p class="post-content">${post.content}
+              <div class="item-btn-group">
+                <button class="btn btn-primary" onclick="viewPostDetail('${post.title}')">查看详情</button>
+                <button class="btn btn-secondary" onclick="editPost('${post.title}')">编辑</button>
+                <button class="btn btn-danger" onclick="deletePost('${post.title}')">删除</button>
+              </div>
+            `;
+            publishList.appendChild(postElement);
+          });
+        } else if (publishList) {
+          publishList.innerHTML = '<div class="empty-state">您还没有发布任何帖子</div>';
+        }
+      }
+
+      function viewPostDetail(title) {
+        alert(`查看帖子详情: ${title}`);
+        // 这里可以跳转到详情页
+        window.location.href = `detail.html?title=${encodeURIComponent(title)}`;
+      }
+
+      function editPost(title) {
+        alert(`编辑帖子: ${title}`);
+        // 这里可以跳转到编辑页
+        window.location.href = `edit.html?title=${encodeURIComponent(title)}`;
+      }
+
+      function deletePost(title) {
+        if (confirm(`确定要删除帖子 "${title}" 吗？`)) {
+          alert(`帖子 "${title}" 已删除`);
+          loadUserPosts(); // 重新加载帖子列表
+        }
+      }
+
+      function changePassword() {
+        const oldPwd = document.getElementById('oldPassword').value;
+        const newPwd = document.getElementById('newPassword').value;
+        const confirmPwd = document.getElementById('confirmPassword').value;
+
+        if (!oldPwd || !newPwd || !confirmPwd) {
+          alert("请填写完整信息");
+          return;
+        }
+
+        if (newPwd !== confirmPwd) {
+          alert("两次输入的新密码不一致");
+          return;
+        }
+
+        if (newPwd.length < 6) {
+          alert("新密码长度不能少于6位");
+          return;
+        }
+
+        alert("密码修改成功！");
+        document.getElementById('passwordForm').reset();
+      }
+    </script>
+  </head>
+  <body>
+     <div class="title">
+      <div class="title-container">
+        <a href="home.html" class="back-to-home">
+          ← 返回主页
+        </a>
+        <h1>校园寻物系统</h1>
+        <div class="title-placeholder"></div> <!-- 占位，保持对称 -->
+      </div>
+    </div>
+    <div class="user-info">
+      <span>当前用户：<span id="usernameDisplay"></span></span>
+      <button class="logout-btn" onclick="logout()">退出登录</button>
+    </div>
+
+    <div class="main-content">
+      <div class="container">
+        <h2 class="page-title">个人主页</h2>
+
+        <div class="info-card">
+          <div class="avatar" id="userAvatar">张</div>
+          <div class="info-detail">
+            <div class="info-item">
+              <label>用户名：</label>
+              <span id="displayUsername">用户名</span>
+            </div>
+            <div class="info-item">
+              <label>注册时间：</label>
+              <span id="registerTime">2024-01-01</span>
+            </div>
+            <div class="info-item">
+              <label>发布帖子数：</label>
+              <span id="postCount">0</span>
+            </div>
+            <div class="info-btn-group">
+              <button class="btn btn-primary" onclick="editProfile()">编辑资料</button>
+              <button class="btn btn-secondary" onclick="changePassword()">修改密码</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-nav">
+          <div class="tab-item active" data-target="myPosts">我的发布</div>
+          <div class="tab-item" data-target="passwordSection">修改密码</div>
+          <div class="tab-item" data-target="adminSection" id="adminTab" style="display:none;">管理员功能</div>
+        </div>
+
+        <div id="myPosts" class="content-section publish-list active">
+          <div id="publishList">
+            <!-- 帖子列表将由JavaScript动态生成 -->
+          </div>
+        </div>
+
+        <div id="passwordSection" class="content-section password-form">
+          <h3 style="color: #333; margin-bottom: 20px;">修改密码</h3>
+          <form id="passwordForm" onsubmit="return false;">
+            <div class="form-group">
+              <label for="oldPassword">原密码</label>
+              <input type="password" id="oldPassword" required placeholder="请输入原密码">
+            </div>
+            <div class="form-group">
+              <label for="newPassword">新密码</label>
+              <input type="password" id="newPassword" required placeholder="请输入新密码（至少6位）">
+            </div>
+            <div class="form-group">
+              <label for="confirmPassword">确认新密码</label>
+              <input type="password" id="confirmPassword" required placeholder="请再次输入新密码">
+            </div>
+            <button type="submit" class="btn btn-primary" onclick="changePassword()">修改密码</button>
+          </form>
+        </div>
+
+        <div id="adminSection" class="content-section password-form">
+          <h3 style="color: #333; margin-bottom: 20px;">管理员功能</h3>
+           style="display: fl<divex; gap: 15px; flex-wrap: wrap;">
+            <a href="user-manage.html" class="btn btn-primary">用户管理</a>
+            <a href="content-manage.html" class="btn btn-primary">内容审核</a>
+            <a href="information-audit-manage.html" class="btn btn-primary">信息管理</a>
+            <a href="report.html" class="btn btn-secondary">举报处理</a>
+          </div>
+          <p style="margin-top: 20px; color: #666;">
+            作为管理员，您可以管理用户、审核内容、处理举报等。
+          
+        </div>
+      </div>
+    </div>
+
+    <div class="page-foot">
+      <p class="copyright">版权所有 © 2026 校园寻物系统
+    </div>
+  </body>
+</html>
