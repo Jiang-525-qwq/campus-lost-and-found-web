@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>登录</title>
+    <style>
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      .title {
+        background-color: #4382ff67;
+        color: rgb(255, 255, 255);
+        text-align: center;
+      }
+      .ps {
+        background-color: rgb(60, 60, 60);
+        padding-left: 20px;
+        color: rgb(255, 255, 255);
+        height: 40px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .login {
+        align-items: center;
+        text-align: center;
+        border: 1px black solid;
+        border-radius: 15px;
+        width: 400px;
+        height: 190px;
+        background-color: aliceblue;
+      }
+      .contains {
+        padding: 20px;
+        background-color: rgb(188, 220, 255);
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+      }
+      .page-foot {
+        background-color: rgb(197, 201, 205);
+        color: rgb(255, 255, 255);
+        text-align: center;
+      }
+      input[type="submit"] {
+        background-color: black;
+        color: rgb(255, 255, 255);
+        border: 0cap;
+        height: 30px;
+        width: 50px;
+        border-radius: 10px;
+      }
+      input[type="text"][type="password"] {
+        size: 20;
+      }
+      form a {
+        color: rgb(100, 100, 100);
+      }
+    </style>
+    <script>
+      //模拟用户静态数据
+      const users = {
+        user1: "111111",
+        user2: "222222",
+      };
+      //检查登录
+      window.onload = function () {
+        const isLoggedIn = localStorage.getItem("isLoggedIn");
+        if (isLoggedIn === "true") {
+          window.location.href = "home.html";
+        }
+      };
+      //密码测试
+      function test() {
+        let password = document.getElementById("psw").value;
+        let username = document.getElementById("username").value;
+        if (!username || !password) {
+          alert("用户名或密码不能为空");
+          return false;
+        } else if (password.length < 3) {
+          alert("密码长度不能小于3");
+          return false;
+        } else {
+          if (users[username] && users[username] === password) {
+            // 存储登录状态
+            localStorage.setItem("isLoggedIn", "true");
+            localStorage.setItem("username", username);
+            alert("登录成功!即将跳转主页");
+            setTimeout(() => {
+              window.location.href = "index.html";
+            }, 500);
+            return true;
+          } else {
+            alert("用户名或密码错误");
+            return false;
+          }
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="title">
+      <h1>校园寻物</h1>
+    </div>
+    <div class="ps">
+      <p>用户名为统一认证码，初始密码为身份证后六位</p>
+    </div>
+    <div class="contains">
+      <div class="login">
+        <p>欢迎登录！</p>
+        <form action="#" id="myform" onsubmit="return test();">
+          <p>用户名<input type="text" id="username" /></p>
+          <p>密码 <input type="password" id="psw" /></p>
+          <input type="submit" value="登录" />
+        </form>
+      </div>
+    </div>
+    <div class="page-foot">
+      <p>版权所有</p>
+    </div>
+  </body>
+</html>
