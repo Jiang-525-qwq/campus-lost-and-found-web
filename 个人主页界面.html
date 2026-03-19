@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>失物招领 - 个人主页</title>
+    <style>
+        /* 全局样式重置（和发布页面保持一致） */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            padding: 20px;
+        }
+
+        /* 页面容器（复用发布页样式） */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 页面标题（复用+微调） */
+        .page-title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+            border-bottom: 2px solid #409eff;
+            padding-bottom: 10px;
+        }
+
+        /* 个人信息卡片 */
+        .info-card {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            border: 1px solid #e6e6e6;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            flex-wrap: wrap; /* 适配移动端 */
+        }
+
+        /* 头像样式 */
+        .avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: #409eff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 36px;
+            font-weight: bold;
+        }
+
+        /* 信息详情 */
+        .info-detail {
+            flex: 1; /* 占满剩余空间 */
+        }
+
+        .info-item {
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #555;
+        }
+
+        .info-item label {
+            font-weight: 600;
+            color: #333;
+            margin-right: 8px;
+        }
+
+        /* 功能按钮组（个人信息区） */
+        .info-btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        /* 标签栏（切换我的发布/修改密码） */
+        .tab-nav {
+            display: flex;
+            border-bottom: 1px solid #e6e6e6;
+            margin-bottom: 20px;
+        }
+
+        .tab-item {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-item.active {
+            color: #409eff;
+            border-bottom-color: #409eff;
+            font-weight: 600;
+        }
+
+        .tab-item:hover {
+            color: #409eff;
+        }
+
+        /* 我的发布列表 */
+        .publish-list {
+            display: none; /* 默认隐藏 */
+        }
+
+        .publish-list.active {
+            display: block;
+        }
+
+        /* 发布项卡片 */
+        .publish-item {
+            padding: 15px;
+            border: 1px solid #e6e6e6;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            transition: box-shadow 0.3s;
+        }
+
+        .publish-item:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .publish-item h3 {
+            color: #333;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .publish-item p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .publish-item .item-tag {
+            display: inline-block;
+            padding: 3px 8px;
+            background-color: #e8f4ff;
+            color: #409eff;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 8px;
+        }
+
+        .publish-item .item-btn-group {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        /* 修改密码表单 */
+        .password-form {
+            display: none; /* 默认隐藏 */
+            max-width: 500px;
+        }
+
+        .password-form.active {
+            display: block;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            border-color: #409eff;
+        }
+
+        /* 通用按钮样式（复用+扩展） */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #409eff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #337ecc;
+        }
+
+        .btn-warning {
+            background-color: #e6a23c;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #d48806;
+        }
+
+        .btn-danger {
+            background-color: #f56c6c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #e43939;
+        }
+
+        .btn-default {
+            background-color: #f5f5f5;
+            color: #666;
+        }
+
+        .btn-default:hover {
+            background-color: #e6e6e6;
+        }
+
+        /* 响应式设计（适配手机） */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .info-card {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .info-btn-group {
+                justify-content: center;
+            }
+
+            .tab-item {
+                padding: 8px 12px;
+                font-size: 14px;
+            }
+
+            .publish-item .item-btn-group {
+                flex-wrap: wrap;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 页面标题 -->
+        <h1 class="page-title">个人主页</h1>
+
+        <!-- 个人信息卡片 -->
+        <div class="info-card">
+            <!-- 头像 -->
+            <div class="avatar">Y</div>
+            <!-- 信息详情 -->
+            <div class="info-detail">
+                <div class="info-item">
+                    <label>用户名：</label>
+                    <span>yanj9914</span>
+                </div>
+                <div class="info-item">
+                    <label>邮箱：</label>
+                    <span>1642818021@qq.com</span>
+                </div>
+                <div class="info-item">
+                    <label>注册时间：</label>
+                    <span>2026-03-19</span>
+                </div>
+                <div class="info-item">
+                    <label>发布记录：</label>
+                    <span>3 条</span>
+                </div>
+                <!-- 信息区按钮组 -->
+                <div class="info-btn-group">
+                    <button class="btn btn-default" onclick="location.href='发帖页面.html'">发布新信息</button>
+                    <button class="btn btn-danger" id="logoutBtn">退出登录</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 功能标签栏 -->
+        <div class="tab-nav">
+            <div class="tab-item active" data-tab="publish">我的发布</div>
+            <div class="tab-item" data-tab="password">修改密码</div>
+        </div>
+
+        <!-- 我的发布列表 -->
+        <div class="publish-list active" id="publishTab">
+            <!-- 发布项1：丢失物品 -->
+            <div class="publish-item">
+                <h3>丢失校园卡</h3>
+                <p><span class="item-tag">丢失</span> <span class="item-tag">证件类</span></p>
+                <p><strong>时间：</strong>2026-03-18 14:30</p>
+                <p><strong>地点：</strong>图书馆3楼自习区</p>
+                <p><strong>描述：</strong>蓝色卡套，印有学校logo，姓名：张三，学号：2023001001</p>
+                <div class="item-btn-group">
+                    <button class="btn btn-primary">编辑</button>
+                    <button class="btn btn-warning">标记找回</button>
+                    <button class="btn btn-danger">删除</button>
+                </div>
+            </div>
+
+            <!-- 发布项2：捡到物品 -->
+            <div class="publish-item">
+                <h3>捡到黑色雨伞</h3>
+                <p><span class="item-tag">捡到</span> <span class="item-tag">日常用品</span></p>
+                <p><strong>时间：</strong>2026-03-17 18:00</p>
+                <p><strong>地点：</strong>教学楼A栋楼下</p>
+                <p><strong>描述：</strong>全自动折叠伞，伞柄有磨损，伞面无图案</p>
+                <div class="item-btn-group">
+                    <button class="btn btn-primary">编辑</button>
+                    <button class="btn btn-warning">标记归还</button>
+                    <button class="btn btn-danger">删除</button>
+                </div>
+            </div>
+
+            <!-- 发布项3：丢失耳机 -->
+            <div class="publish-item">
+                <h3>丢失AirPods Pro</h3>
+                <p><span class="item-tag">丢失</span> <span class="item-tag">电子类</span></p>
+                <p><strong>时间：</strong>2026-03-16 12:00</p>
+                <p><strong>地点：</strong>食堂二楼</p>
+                <p><strong>描述：</strong>白色耳机，充电盒刻有字母Y，丢失时电量约50%</p>
+                <div class="item-btn-group">
+                    <button class="btn btn-primary">编辑</button>
+                    <button class="btn btn-warning">标记找回</button>
+                    <button class="btn btn-danger">删除</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 修改密码表单 -->
+        <div class="password-form" id="passwordTab">
+            <div class="form-group">
+                <label for="oldPwd">原密码</label>
+                <input type="password" id="oldPwd" placeholder="请输入原密码" required>
+            </div>
+            <div class="form-group">
+                <label for="newPwd">新密码</label>
+                <input type="password" id="newPwd" placeholder="请输入6-16位新密码" required>
+            </div>
+            <div class="form-group">
+                <label for="confirmPwd">确认新密码</label>
+                <input type="password" id="confirmPwd" placeholder="请再次输入新密码" required>
+            </div>
+            <div class="info-btn-group">
+                <button class="btn btn-primary" id="savePwdBtn">保存密码</button>
+                <button class="btn btn-default" id="cancelPwdBtn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. 标签切换逻辑
+        const tabItems = document.querySelectorAll('.tab-item');
+        const publishTab = document.getElementById('publishTab');
+        const passwordTab = document.getElementById('passwordTab');
+
+        tabItems.forEach(item => {
+            item.addEventListener('click', function() {
+                // 移除所有标签的active类
+                tabItems.forEach(tab => tab.classList.remove('active'));
+                // 给当前点击的标签加active类
+                this.classList.add('active');
+                
+                // 切换对应内容区
+                const tabType = this.getAttribute('data-tab');
+                if (tabType === 'publish') {
+                    publishTab.classList.add('active');
+                    passwordTab.classList.remove('active');
+                } else if (tabType === 'password') {
+                    publishTab.classList.remove('active');
+                    passwordTab.classList.add('active');
+                }
+            });
+        });
+
+        // 2. 退出登录逻辑
+        const logoutBtn = document.getElementById('logoutBtn');
+        logoutBtn.addEventListener('click', function() {
+            if (confirm('确定要退出登录吗？')) {
+                alert('退出登录成功！');
+                // 实际项目中这里会跳转到登录页，示例：
+                // location.href = 'login.html';
+            }
+        });
+
+        // 3. 修改密码逻辑
+        const savePwdBtn = document.getElementById('savePwdBtn');
+        const cancelPwdBtn = document.getElementById('cancelPwdBtn');
+        const oldPwd = document.getElementById('oldPwd');
+        const newPwd = document.getElementById('newPwd');
+        const confirmPwd = document.getElementById('confirmPwd');
+
+        // 保存密码
+        savePwdBtn.addEventListener('click', function() {
+            // 简单验证
+            if (!oldPwd.value) {
+                alert('请输入原密码！');
+                return;
+            }
+            if (newPwd.value.length < 6 || newPwd.value.length > 16) {
+                alert('新密码长度需在6-16位之间！');
+                return;
+            }
+            if (newPwd.value !== confirmPwd.value) {
+                alert('两次输入的新密码不一致！');
+                return;
+            }
+
+            // 模拟修改成功
+            alert('密码修改成功！请重新登录');
+            // 清空表单
+            oldPwd.value = '';
+            newPwd.value = '';
+            confirmPwd.value = '';
+            // 切回我的发布标签
+            tabItems[0].click();
+        });
+
+        // 取消修改密码
+        cancelPwdBtn.addEventListener('click', function() {
+            // 清空表单
+            oldPwd.value = '';
+            newPwd.value = '';
+            confirmPwd.value = '';
+            // 切回我的发布标签
+            tabItems[0].click();
+        });
+    </script>
+</body>
+</html>
