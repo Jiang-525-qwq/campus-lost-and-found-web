@@ -945,11 +945,11 @@
             <td>${report.time}</td>
             <td><span class="tag ${getStatusClass(report.status)}">${report.status}</span></td>
             <td class="action-buttons">
-              <button class="btn-small btn-view" onclick="viewReport(${report.id})">🔍 查看</button>
+              <button class="btn-small btn-view" onclick="viewReport(${report.id})">查看</button>
               ${
                 report.status === "待处理" || report.status === "处理中"
-                  ? `<button class="btn-small btn-process" onclick="processReport(${report.id})">⚙️ 处理</button>
-                 <button class="btn-small btn-ignore" onclick="ignoreReport(${report.id})">❌ 驳回</button>`
+                  ? `<button class="btn-small btn-process" onclick="processReport(${report.id})">处理</button>
+                 <button class="btn-small btn-ignore" onclick="ignoreReport(${report.id})">驳回</button>`
                   : ""
               }
             </td>
