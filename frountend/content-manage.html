@@ -578,386 +578,386 @@
         }
       }
     </style>
-    <script>
-      window.onload = function () {
-        const isLoggedIn = localStorage.getItem("isLoggedIn");
-        const username = localStorage.getItem("username");
-        const isAdmin = localStorage.getItem("isAdmin");
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js">
+            window.onload = function () {
+              const isLoggedIn = localStorage.getItem("isLoggedIn");
+              const username = localStorage.getItem("username");
+              const isAdmin = localStorage.getItem("isAdmin");
 
-        // 检查登录状态和管理员权限
-        if (isLoggedIn !== "true" || !username) {
-          alert("请先登录");
-          window.location.href = "login.html";
-          return;
-        }
-
-        if (isAdmin !== "true") {
-          alert("您没有管理员权限！");
-          window.location.href = "index.html";
-          return;
-        }
-
-        // 显示当前用户
-        document.getElementById("usernameDisplay").textContent = username;
-        document.getElementById("usernameDisplay").innerHTML =
-          username +
-          ' <span style="color:#ff9800; font-size:12px;">(管理员)</span>';
-
-        // 初始化数据
-        loadContentData();
-      };
-
-      function logout() {
-        localStorage.removeItem("isLoggedIn");
-        localStorage.removeItem("username");
-        localStorage.removeItem("loginTime");
-        localStorage.removeItem("isAdmin");
-        alert("已退出登录");
-        window.location.href = "login.html";
-      }
-
-      // 模拟内容数据
-      const contentData = [
-        {
-          id: 2001,
-          type: "招领",
-          itemName: "校园卡",
-          publisher: "李四",
-          publishTime: "2026-03-18 10:15",
-          status: "已发布",
-          location: "中心食堂",
-          viewCount: 125,
-          contactCount: 8,
-        },
-        {
-          id: 2002,
-          type: "寻物",
-          itemName: "黑色钱包",
-          publisher: "张三",
-          publishTime: "2026-03-18 14:30",
-          status: "已发布",
-          location: "图书馆",
-          viewCount: 89,
-          contactCount: 3,
-        },
-        {
-          id: 2003,
-          type: "招领",
-          itemName: "钥匙串",
-          publisher: "王五",
-          publishTime: "2026-03-17 16:20",
-          status: "已下架",
-          location: "三教302",
-          viewCount: 45,
-          contactCount: 2,
-        },
-        {
-          id: 2004,
-          type: "寻物",
-          itemName: "蓝牙耳机",
-          publisher: "赵六",
-          publishTime: "2026-03-16 09:45",
-          status: "已删除",
-          location: "运动场",
-          viewCount: 67,
-          contactCount: 4,
-        },
-        {
-          id: 2005,
-          type: "招领",
-          itemName: "水杯",
-          publisher: "钱七",
-          publishTime: "2026-03-15 18:30",
-          status: "已发布",
-          location: "宿舍区",
-          viewCount: 102,
-          contactCount: 6,
-        },
-        {
-          id: 2006,
-          type: "寻物",
-          itemName: "学生证",
-          publisher: "孙八",
-          publishTime: "2026-03-14 11:20",
-          status: "已发布",
-          location: "教学楼A",
-          viewCount: 143,
-          contactCount: 12,
-        },
-      ];
-
-      function loadContentData() {
-        const tableBody = document.getElementById("contentTableBody");
-        const publishedCount = document.getElementById("publishedCount");
-        const hiddenCount = document.getElementById("hiddenCount");
-        const deletedCount = document.getElementById("deletedCount");
-        const totalCount = document.getElementById("totalCount");
-
-        if (!tableBody) return;
-
-        tableBody.innerHTML = "";
-
-        let published = 0;
-        let hidden = 0;
-        let deleted = 0;
-
-        contentData.forEach((item) => {
-          const row = document.createElement("tr");
-
-          // 根据状态计数
-          if (item.status === "已发布") published++;
-          else if (item.status === "已下架") hidden++;
-          else if (item.status === "已删除") deleted++;
-
-          row.innerHTML = `
-            <td>
-              <input type="checkbox" class="row-checkbox" data-id="${item.id}" onchange="updateSelectedCount()">
-              ${item.id}
-            </td>
-            <td><span class="tag ${item.type === "寻物" ? "tag-lost" : "tag-found"}">${item.type}</span></td>
-            <td>${item.itemName}</td>
-            <td>${item.publisher}</td>
-            <td>${item.publishTime}</td>
-            <td><span class="tag ${getStatusClass(item.status)}">${item.status}</span></td>
-            <td class="action-buttons">
-              <button class="btn btn-view" onclick="viewContent(${item.id})">查看</button>
-              <button class="btn btn-edit" onclick="editContent(${item.id})">编辑</button>
-              ${
-                item.status === "已发布"
-                  ? `<button class="btn btn-hide" onclick="toggleStatus(${item.id}, 'hide')">下架</button>`
-                  : item.status === "已下架"
-                    ? `<button class="btn btn-restore" onclick="toggleStatus(${item.id}, 'restore')">恢复</button>`
-                    : ""
+              // 检查登录状态和管理员权限
+              if (isLoggedIn !== "true" || !username) {
+                alert("请先登录");
+                window.location.href = "login.html";
+                return;
               }
-              ${
-                item.status !== "已删除"
-                  ? `<button class="btn btn-delete" onclick="deleteContent(${item.id})">删除</button>`
-                  : ""
+
+              if (isAdmin !== "true") {
+                alert("您没有管理员权限！");
+                window.location.href = "index.html";
+                return;
               }
-            </td>
-          `;
 
-          tableBody.appendChild(row);
-        });
+              // 显示当前用户
+              document.getElementById("usernameDisplay").textContent = username;
+              document.getElementById("usernameDisplay").innerHTML =
+                username +
+                ' <span style="color:#ff9800; font-size:12px;">(管理员)</span>';
 
-        // 更新统计数据
-        if (publishedCount) publishedCount.textContent = published;
-        if (hiddenCount) hiddenCount.textContent = hidden;
-        if (deletedCount) deletedCount.textContent = deleted;
-        if (totalCount) totalCount.textContent = contentData.length;
+              // 初始化数据
+              loadContentData();
+            };
 
-        // 更新选中数量
-        updateSelectedCount();
-      }
-
-      function getStatusClass(status) {
-        switch (status) {
-          case "已发布":
-            return "tag-status-published";
-          case "已下架":
-            return "tag-status-hidden";
-          case "已删除":
-            return "tag-status-deleted";
-          default:
-            return "";
-        }
-      }
-
-      function viewContent(id) {
-        const item = contentData.find((item) => item.id === id);
-        if (!item) return;
-
-        alert(`查看内容详情 - ID: ${item.id}\n
-物品名称: ${item.itemName}\n
-类型: ${item.type}\n
-发布人: ${item.publisher}\n
-发布时间: ${item.publishTime}\n
-地点: ${item.location}\n
-状态: ${item.status}\n
-浏览次数: ${item.viewCount}\n
-联系次数: ${item.contactCount}`);
-      }
-
-      function editContent(id) {
-        if (confirm(`确定要编辑 ID ${id} 的内容吗？`)) {
-          alert(`编辑内容 ID ${id}\n（这里可以跳转到编辑页面）`);
-        }
-      }
-
-      function toggleStatus(id, action) {
-        const item = contentData.find((item) => item.id === id);
-        if (!item) return;
-
-        if (action === "hide") {
-          if (confirm(`确定要下架 ID ${id} 的内容吗？`)) {
-            item.status = "已下架";
-            alert(`已下架 ID ${id} 的内容`);
-            loadContentData();
-          }
-        } else if (action === "restore") {
-          if (confirm(`确定要恢复 ID ${id} 的内容吗？`)) {
-            item.status = "已发布";
-            alert(`已恢复 ID ${id} 的内容`);
-            loadContentData();
-          }
-        }
-      }
-
-      function deleteContent(id) {
-        if (confirm(`确定要删除 ID ${id} 的内容吗？\n此操作不可恢复！`)) {
-          const item = contentData.find((item) => item.id === id);
-          if (item) {
-            item.status = "已删除";
-            alert(`已删除 ID ${id} 的内容`);
-            loadContentData();
-          }
-        }
-      }
-
-      function searchContent() {
-        const searchText = document
-          .getElementById("searchInput")
-          .value.toLowerCase();
-        const statusFilter = document.getElementById("statusFilter").value;
-        const typeFilter = document.getElementById("typeFilter").value;
-
-        const tableBody = document.getElementById("contentTableBody");
-        if (!tableBody) return;
-
-        const rows = tableBody.getElementsByTagName("tr");
-        let matchCount = 0;
-
-        for (let row of rows) {
-          const itemNameCell = row.cells[2].textContent.toLowerCase();
-          const publisherCell = row.cells[3].textContent.toLowerCase();
-          const statusCell = row.cells[5].textContent.trim();
-          const typeCell = row.cells[1].textContent.trim();
-
-          let showRow = true;
-
-          // 搜索文本过滤
-          if (
-            searchText &&
-            !itemNameCell.includes(searchText) &&
-            !publisherCell.includes(searchText)
-          ) {
-            showRow = false;
-          }
-
-          // 状态过滤
-          if (statusFilter !== "all" && statusCell !== statusFilter) {
-            showRow = false;
-          }
-
-          // 类型过滤
-          if (typeFilter !== "all" && typeCell !== typeFilter) {
-            showRow = false;
-          }
-
-          row.style.display = showRow ? "" : "none";
-          if (showRow) matchCount++;
-        }
-
-        // 如果没有匹配结果
-        if (matchCount === 0) {
-          const noResults = document.getElementById("noResultsMessage");
-          if (noResults) {
-            noResults.style.display = "block";
-          }
-        } else {
-          const noResults = document.getElementById("noResultsMessage");
-          if (noResults) {
-            noResults.style.display = "none";
-          }
-        }
-      }
-
-      function updateSelectedCount() {
-        const checkboxes = document.querySelectorAll(".row-checkbox:checked");
-        const selectedCountElement = document.getElementById("selectedCount");
-        if (selectedCountElement) {
-          selectedCountElement.textContent = checkboxes.length;
-        }
-      }
-
-      function selectAllRows() {
-        const selectAllCheckbox = document.getElementById("selectAll");
-        const checkboxes = document.querySelectorAll(".row-checkbox");
-
-        checkboxes.forEach((checkbox) => {
-          checkbox.checked = selectAllCheckbox.checked;
-        });
-
-        updateSelectedCount();
-      }
-
-      function batchAction(action) {
-        const selectedIds = [];
-        document
-          .querySelectorAll(".row-checkbox:checked")
-          .forEach((checkbox) => {
-            selectedIds.push(checkbox.getAttribute("data-id"));
-          });
-
-        if (selectedIds.length === 0) {
-          alert("请先选择要操作的内容");
-          return;
-        }
-
-        if (action === "hide") {
-          if (confirm(`确定要下架选中的 ${selectedIds.length} 条内容吗？`)) {
-            selectedIds.forEach((id) => {
-              const item = contentData.find((item) => item.id === parseInt(id));
-              if (item && item.status === "已发布") {
-                item.status = "已下架";
-              }
-            });
-            alert(`已下架 ${selectedIds.length} 条内容`);
-            loadContentData();
-          }
-        } else if (action === "restore") {
-          if (confirm(`确定要恢复选中的 ${selectedIds.length} 条内容吗？`)) {
-            selectedIds.forEach((id) => {
-              const item = contentData.find((item) => item.id === parseInt(id));
-              if (item && item.status === "已下架") {
-                item.status = "已发布";
-              }
-            });
-            alert(`已恢复 ${selectedIds.length} 条内容`);
-            loadContentData();
-          }
-        } else if (action === "delete") {
-          if (
-            confirm(
-              `确定要删除选中的 ${selectedIds.length} 条内容吗？\n 此操作不可恢复！`,
-            )
-          ) {
-            selectedIds.forEach((id) => {
-              const item = contentData.find((item) => item.id === parseInt(id));
-              if (item && item.status !== "已删除") {
-                item.status = "已删除";
-              }
-            });
-            alert(`已删除 ${selectedIds.length} 条内容`);
-            loadContentData();
-          }
-        }
-
-        // 取消全选
-        document.getElementById("selectAll").checked = false;
-      }
-
-      // 绑定搜索框回车事件
-      document.addEventListener("DOMContentLoaded", function () {
-        const searchInput = document.getElementById("searchInput");
-        if (searchInput) {
-          searchInput.addEventListener("keypress", function (e) {
-            if (e.key === "Enter") {
-              searchContent();
+            function logout() {
+              localStorage.removeItem("isLoggedIn");
+              localStorage.removeItem("username");
+              localStorage.removeItem("loginTime");
+              localStorage.removeItem("isAdmin");
+              alert("已退出登录");
+              window.location.href = "login.html";
             }
-          });
-        }
-      });
+
+            // 模拟内容数据
+            const contentData = [
+              {
+                id: 2001,
+                type: "招领",
+                itemName: "校园卡",
+                publisher: "李四",
+                publishTime: "2026-03-18 10:15",
+                status: "已发布",
+                location: "中心食堂",
+                viewCount: 125,
+                contactCount: 8,
+              },
+              {
+                id: 2002,
+                type: "寻物",
+                itemName: "黑色钱包",
+                publisher: "张三",
+                publishTime: "2026-03-18 14:30",
+                status: "已发布",
+                location: "图书馆",
+                viewCount: 89,
+                contactCount: 3,
+              },
+              {
+                id: 2003,
+                type: "招领",
+                itemName: "钥匙串",
+                publisher: "王五",
+                publishTime: "2026-03-17 16:20",
+                status: "已下架",
+                location: "三教302",
+                viewCount: 45,
+                contactCount: 2,
+              },
+              {
+                id: 2004,
+                type: "寻物",
+                itemName: "蓝牙耳机",
+                publisher: "赵六",
+                publishTime: "2026-03-16 09:45",
+                status: "已删除",
+                location: "运动场",
+                viewCount: 67,
+                contactCount: 4,
+              },
+              {
+                id: 2005,
+                type: "招领",
+                itemName: "水杯",
+                publisher: "钱七",
+                publishTime: "2026-03-15 18:30",
+                status: "已发布",
+                location: "宿舍区",
+                viewCount: 102,
+                contactCount: 6,
+              },
+              {
+                id: 2006,
+                type: "寻物",
+                itemName: "学生证",
+                publisher: "孙八",
+                publishTime: "2026-03-14 11:20",
+                status: "已发布",
+                location: "教学楼A",
+                viewCount: 143,
+                contactCount: 12,
+              },
+            ];
+
+            function loadContentData() {
+              const tableBody = document.getElementById("contentTableBody");
+              const publishedCount = document.getElementById("publishedCount");
+              const hiddenCount = document.getElementById("hiddenCount");
+              const deletedCount = document.getElementById("deletedCount");
+              const totalCount = document.getElementById("totalCount");
+
+              if (!tableBody) return;
+
+              tableBody.innerHTML = "";
+
+              let published = 0;
+              let hidden = 0;
+              let deleted = 0;
+
+              contentData.forEach((item) => {
+                const row = document.createElement("tr");
+
+                // 根据状态计数
+                if (item.status === "已发布") published++;
+                else if (item.status === "已下架") hidden++;
+                else if (item.status === "已删除") deleted++;
+
+                row.innerHTML = `
+                  <td>
+                    <input type="checkbox" class="row-checkbox" data-id="${item.id}" onchange="updateSelectedCount()">
+                    ${item.id}
+                  </td>
+                  <td><span class="tag ${item.type === "寻物" ? "tag-lost" : "tag-found"}">${item.type}</span></td>
+                  <td>${item.itemName}</td>
+                  <td>${item.publisher}</td>
+                  <td>${item.publishTime}</td>
+                  <td><span class="tag ${getStatusClass(item.status)}">${item.status}</span></td>
+                  <td class="action-buttons">
+                    <button class="btn btn-view" onclick="viewContent(${item.id})">查看</button>
+                    <button class="btn btn-edit" onclick="editContent(${item.id})">编辑</button>
+                    ${
+                      item.status === "已发布"
+                        ? `<button class="btn btn-hide" onclick="toggleStatus(${item.id}, 'hide')">下架</button>`
+                        : item.status === "已下架"
+                          ? `<button class="btn btn-restore" onclick="toggleStatus(${item.id}, 'restore')">恢复</button>`
+                          : ""
+                    }
+                    ${
+                      item.status !== "已删除"
+                        ? `<button class="btn btn-delete" onclick="deleteContent(${item.id})">删除</button>`
+                        : ""
+                    }
+                  </td>
+                `;
+
+                tableBody.appendChild(row);
+              });
+
+              // 更新统计数据
+              if (publishedCount) publishedCount.textContent = published;
+              if (hiddenCount) hiddenCount.textContent = hidden;
+              if (deletedCount) deletedCount.textContent = deleted;
+              if (totalCount) totalCount.textContent = contentData.length;
+
+              // 更新选中数量
+              updateSelectedCount();
+            }
+
+            function getStatusClass(status) {
+              switch (status) {
+                case "已发布":
+                  return "tag-status-published";
+                case "已下架":
+                  return "tag-status-hidden";
+                case "已删除":
+                  return "tag-status-deleted";
+                default:
+                  return "";
+              }
+            }
+
+            function viewContent(id) {
+              const item = contentData.find((item) => item.id === id);
+              if (!item) return;
+
+              alert(`查看内容详情 - ID: ${item.id}\n
+      物品名称: ${item.itemName}\n
+      类型: ${item.type}\n
+      发布人: ${item.publisher}\n
+      发布时间: ${item.publishTime}\n
+      地点: ${item.location}\n
+      状态: ${item.status}\n
+      浏览次数: ${item.viewCount}\n
+      联系次数: ${item.contactCount}`);
+            }
+
+            function editContent(id) {
+              if (confirm(`确定要编辑 ID ${id} 的内容吗？`)) {
+                alert(`编辑内容 ID ${id}\n（这里可以跳转到编辑页面）`);
+              }
+            }
+
+            function toggleStatus(id, action) {
+              const item = contentData.find((item) => item.id === id);
+              if (!item) return;
+
+              if (action === "hide") {
+                if (confirm(`确定要下架 ID ${id} 的内容吗？`)) {
+                  item.status = "已下架";
+                  alert(`已下架 ID ${id} 的内容`);
+                  loadContentData();
+                }
+              } else if (action === "restore") {
+                if (confirm(`确定要恢复 ID ${id} 的内容吗？`)) {
+                  item.status = "已发布";
+                  alert(`已恢复 ID ${id} 的内容`);
+                  loadContentData();
+                }
+              }
+            }
+
+            function deleteContent(id) {
+              if (confirm(`确定要删除 ID ${id} 的内容吗？\n此操作不可恢复！`)) {
+                const item = contentData.find((item) => item.id === id);
+                if (item) {
+                  item.status = "已删除";
+                  alert(`已删除 ID ${id} 的内容`);
+                  loadContentData();
+                }
+              }
+            }
+
+            function searchContent() {
+              const searchText = document
+                .getElementById("searchInput")
+                .value.toLowerCase();
+              const statusFilter = document.getElementById("statusFilter").value;
+              const typeFilter = document.getElementById("typeFilter").value;
+
+              const tableBody = document.getElementById("contentTableBody");
+              if (!tableBody) return;
+
+              const rows = tableBody.getElementsByTagName("tr");
+              let matchCount = 0;
+
+              for (let row of rows) {
+                const itemNameCell = row.cells[2].textContent.toLowerCase();
+                const publisherCell = row.cells[3].textContent.toLowerCase();
+                const statusCell = row.cells[5].textContent.trim();
+                const typeCell = row.cells[1].textContent.trim();
+
+                let showRow = true;
+
+                // 搜索文本过滤
+                if (
+                  searchText &&
+                  !itemNameCell.includes(searchText) &&
+                  !publisherCell.includes(searchText)
+                ) {
+                  showRow = false;
+                }
+
+                // 状态过滤
+                if (statusFilter !== "all" && statusCell !== statusFilter) {
+                  showRow = false;
+                }
+
+                // 类型过滤
+                if (typeFilter !== "all" && typeCell !== typeFilter) {
+                  showRow = false;
+                }
+
+                row.style.display = showRow ? "" : "none";
+                if (showRow) matchCount++;
+              }
+
+              // 如果没有匹配结果
+              if (matchCount === 0) {
+                const noResults = document.getElementById("noResultsMessage");
+                if (noResults) {
+                  noResults.style.display = "block";
+                }
+              } else {
+                const noResults = document.getElementById("noResultsMessage");
+                if (noResults) {
+                  noResults.style.display = "none";
+                }
+              }
+            }
+
+            function updateSelectedCount() {
+              const checkboxes = document.querySelectorAll(".row-checkbox:checked");
+              const selectedCountElement = document.getElementById("selectedCount");
+              if (selectedCountElement) {
+                selectedCountElement.textContent = checkboxes.length;
+              }
+            }
+
+            function selectAllRows() {
+              const selectAllCheckbox = document.getElementById("selectAll");
+              const checkboxes = document.querySelectorAll(".row-checkbox");
+
+              checkboxes.forEach((checkbox) => {
+                checkbox.checked = selectAllCheckbox.checked;
+              });
+
+              updateSelectedCount();
+            }
+
+            function batchAction(action) {
+              const selectedIds = [];
+              document
+                .querySelectorAll(".row-checkbox:checked")
+                .forEach((checkbox) => {
+                  selectedIds.push(checkbox.getAttribute("data-id"));
+                });
+
+              if (selectedIds.length === 0) {
+                alert("请先选择要操作的内容");
+                return;
+              }
+
+              if (action === "hide") {
+                if (confirm(`确定要下架选中的 ${selectedIds.length} 条内容吗？`)) {
+                  selectedIds.forEach((id) => {
+                    const item = contentData.find((item) => item.id === parseInt(id));
+                    if (item && item.status === "已发布") {
+                      item.status = "已下架";
+                    }
+                  });
+                  alert(`已下架 ${selectedIds.length} 条内容`);
+                  loadContentData();
+                }
+              } else if (action === "restore") {
+                if (confirm(`确定要恢复选中的 ${selectedIds.length} 条内容吗？`)) {
+                  selectedIds.forEach((id) => {
+                    const item = contentData.find((item) => item.id === parseInt(id));
+                    if (item && item.status === "已下架") {
+                      item.status = "已发布";
+                    }
+                  });
+                  alert(`已恢复 ${selectedIds.length} 条内容`);
+                  loadContentData();
+                }
+              } else if (action === "delete") {
+                if (
+                  confirm(
+                    `确定要删除选中的 ${selectedIds.length} 条内容吗？\n 此操作不可恢复！`,
+                  )
+                ) {
+                  selectedIds.forEach((id) => {
+                    const item = contentData.find((item) => item.id === parseInt(id));
+                    if (item && item.status !== "已删除") {
+                      item.status = "已删除";
+                    }
+                  });
+                  alert(`已删除 ${selectedIds.length} 条内容`);
+                  loadContentData();
+                }
+              }
+
+              // 取消全选
+              document.getElementById("selectAll").checked = false;
+            }
+
+            // 绑定搜索框回车事件
+            document.addEventListener("DOMContentLoaded", function () {
+              const searchInput = document.getElementById("searchInput");
+              if (searchInput) {
+                searchInput.addEventListener("keypress", function (e) {
+                  if (e.key === "Enter") {
+                    searchContent();
+                  }
+                });
+              }
+            });
     </script>
   </head>
   <body>

@@ -555,424 +555,424 @@
         }
       }
     </style>
-    <script>
-      window.onload = function () {
-        const isLoggedIn = localStorage.getItem("isLoggedIn");
-        const username = localStorage.getItem("username");
-        const isAdmin = localStorage.getItem("isAdmin");
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js">
+            window.onload = function () {
+              const isLoggedIn = localStorage.getItem("isLoggedIn");
+              const username = localStorage.getItem("username");
+              const isAdmin = localStorage.getItem("isAdmin");
 
-        // 检查登录状态和管理员权限
-        if (isLoggedIn !== "true" || !username) {
-          alert("请先登录");
-          window.location.href = "login.html";
-          return;
-        }
-
-        if (isAdmin !== "true") {
-          alert("您没有管理员权限！");
-          window.location.href = "index.html";
-          return;
-        }
-
-        // 显示当前用户
-        document.getElementById("usernameDisplay").textContent = username;
-        document.getElementById("usernameDisplay").innerHTML =
-          username +
-          ' <span style="color:#ff9800; font-size:12px;">(管理员)</span>';
-
-        // 初始化数据
-        loadUserData();
-      };
-
-      function logout() {
-        localStorage.removeItem("isLoggedIn");
-        localStorage.removeItem("username");
-        localStorage.removeItem("loginTime");
-        localStorage.removeItem("isAdmin");
-        alert("已退出登录");
-        window.location.href = "login.html";
-      }
-
-      // 模拟用户数据
-      const userData = [
-        {
-          id: 1001,
-          studentId: "20230001",
-          username: "张三",
-          email: "zhangsan@example.com",
-          phone: "13800000000",
-          registerTime: "2026-03-01 10:30",
-          status: "正常",
-          role: "用户",
-          postCount: 5,
-        },
-        {
-          id: 1002,
-          studentId: "20230002",
-          username: "李四",
-          email: "lisi@example.com",
-          phone: "13900000000",
-          registerTime: "2026-03-05 14:20",
-          status: "已封禁",
-          role: "用户",
-          postCount: 2,
-        },
-        {
-          id: 1003,
-          studentId: "20230003",
-          username: "王五",
-          email: "wangwu@example.com",
-          phone: "13700000000",
-          registerTime: "2026-03-10 09:15",
-          status: "正常",
-          role: "用户",
-          postCount: 8,
-        },
-        {
-          id: 1004,
-          studentId: "admin001",
-          username: "管理员",
-          email: "admin@example.com",
-          phone: "13600000000",
-          registerTime: "2026-01-01 00:00",
-          status: "正常",
-          role: "管理员",
-          postCount: 12,
-        },
-        {
-          id: 1005,
-          studentId: "20230005",
-          username: "赵六",
-          email: "zhaoliu@example.com",
-          phone: "13500000000",
-          registerTime: "2026-03-12 16:45",
-          status: "正常",
-          role: "用户",
-          postCount: 3,
-        },
-      ];
-
-      function loadUserData() {
-        const tableBody = document.getElementById("userTableBody");
-        const activeCount = document.getElementById("activeCount");
-        const bannedCount = document.getElementById("bannedCount");
-        const adminCount = document.getElementById("adminCount");
-        const totalCount = document.getElementById("totalCount");
-
-        if (!tableBody) return;
-
-        tableBody.innerHTML = "";
-
-        let active = 0;
-        let banned = 0;
-        let admin = 0;
-
-        userData.forEach((user) => {
-          const row = document.createElement("tr");
-
-          // 根据状态计数
-          if (user.status === "正常") active++;
-          else if (user.status === "已封禁") banned++;
-
-          if (user.role === "管理员") admin++;
-
-          row.innerHTML = `
-            <td>
-              <input type="checkbox" class="row-checkbox" data-id="${user.id}" onchange="updateSelectedCount()">
-              ${user.id}
-            </td>
-            <td>${user.studentId}</td>
-            <td>${user.username}</td>
-            <td>${user.phone}</td>
-            <td>${user.registerTime}</td>
-            <td>
-              <span class="tag ${getStatusClass(user.status)}">${user.status}</span>
-              ${user.role === "管理员" ? ' <span class="tag tag-admin">管理员</span>' : ""}
-            </td>
-            <td class="action-buttons">
-              <button class="btn btn-view" onclick="viewUser(${user.id})">查看</button>
-              <button class="btn btn-edit" onclick="editUser(${user.id})">编辑</button>
-              ${
-                user.status === "正常" && user.role === "用户"
-                  ? `<button class="btn btn-ban" onclick="toggleUserStatus(${user.id}, 'ban')">封禁</button>`
-                  : user.status === "已封禁"
-                    ? `<button class="btn btn-enable" onclick="toggleUserStatus(${user.id}, 'enable')">解封</button>`
-                    : ""
+              // 检查登录状态和管理员权限
+              if (isLoggedIn !== "true" || !username) {
+                alert("请先登录");
+                window.location.href = "login.html";
+                return;
               }
-              ${
-                user.role === "用户"
-                  ? `<button class="btn btn-edit" onclick="setAsAdmin(${user.id})">设管理员</button>`
-                  : user.role === "管理员" && user.id !== 1004
-                    ? `<button class="btn btn-enable" onclick="removeAdmin(${user.id})">撤管理员</button>`
-                    : ""
+
+              if (isAdmin !== "true") {
+                alert("您没有管理员权限！");
+                window.location.href = "index.html";
+                return;
               }
-              ${
-                user.role === "用户"
-                  ? `<button class="btn btn-delete" onclick="deleteUser(${user.id})">删除</button>`
-                  : ""
-              }
-            </td>
-          `;
 
-          tableBody.appendChild(row);
-        });
+              // 显示当前用户
+              document.getElementById("usernameDisplay").textContent = username;
+              document.getElementById("usernameDisplay").innerHTML =
+                username +
+                ' <span style="color:#ff9800; font-size:12px;">(管理员)</span>';
 
-        // 更新统计数据
-        if (activeCount) activeCount.textContent = active;
-        if (bannedCount) bannedCount.textContent = banned;
-        if (adminCount) adminCount.textContent = admin;
-        if (totalCount) totalCount.textContent = userData.length;
+              // 初始化数据
+              loadUserData();
+            };
 
-        // 更新选中数量
-        updateSelectedCount();
-      }
-
-      function getStatusClass(status) {
-        switch (status) {
-          case "正常":
-            return "tag-active";
-          case "已封禁":
-            return "tag-banned";
-          default:
-            return "";
-        }
-      }
-
-      function viewUser(id) {
-        const user = userData.find((u) => u.id === id);
-        if (!user) return;
-
-        alert(`用户详情 - ID: ${user.id}\n
-学号: ${user.studentId}\n
-用户名: ${user.username}\n
-邮箱: ${user.email}\n
-手机号: ${user.phone}\n
-注册时间: ${user.registerTime}\n
-状态: ${user.status}\n
-角色: ${user.role}\n
-发帖数: ${user.postCount}`);
-      }
-
-      function editUser(id) {
-        if (confirm(`确定要编辑用户 ID ${id} 的信息吗？`)) {
-          alert(`编辑用户 ID ${id}\n（这里可以跳转到用户编辑页面）`);
-        }
-      }
-
-      function toggleUserStatus(id, action) {
-        const user = userData.find((u) => u.id === id);
-        if (!user) return;
-
-        if (action === "ban") {
-          if (confirm(`确定要封禁用户 ${user.username} 吗？`)) {
-            user.status = "已封禁";
-            alert(`已封禁用户 ${user.username}`);
-            loadUserData();
-          }
-        } else if (action === "enable") {
-          if (confirm(`确定要解封用户 ${user.username} 吗？`)) {
-            user.status = "正常";
-            alert(`已解封用户 ${user.username}`);
-            loadUserData();
-          }
-        }
-      }
-
-      function setAsAdmin(id) {
-        const user = userData.find((u) => u.id === id);
-        if (!user) return;
-
-        if (confirm(`确定要将用户 ${user.username} 设为管理员吗？`)) {
-          user.role = "管理员";
-          alert(`已将用户 ${user.username} 设为管理员`);
-          loadUserData();
-        }
-      }
-
-      function removeAdmin(id) {
-        const user = userData.find((u) => u.id === id);
-        if (!user) return;
-
-        if (confirm(`确定要撤销用户 ${user.username} 的管理员权限吗？`)) {
-          user.role = "用户";
-          alert(`已撤销用户 ${user.username} 的管理员权限`);
-          loadUserData();
-        }
-      }
-
-      function deleteUser(id) {
-        const user = userData.find((u) => u.id === id);
-        if (!user) return;
-
-        if (
-          confirm(`确定要删除用户 ${user.username} 吗？\n 此操作不可恢复！`)
-        ) {
-          const index = userData.findIndex((u) => u.id === id);
-          if (index !== -1) {
-            userData.splice(index, 1);
-            alert(`已删除用户 ${user.username}`);
-            loadUserData();
-          }
-        }
-      }
-
-      function searchUsers() {
-        const searchText = document
-          .getElementById("searchInput")
-          .value.toLowerCase();
-        const statusFilter = document.getElementById("statusFilter").value;
-        const roleFilter = document.getElementById("roleFilter").value;
-
-        const tableBody = document.getElementById("userTableBody");
-        if (!tableBody) return;
-
-        const rows = tableBody.getElementsByTagName("tr");
-        let matchCount = 0;
-
-        for (let row of rows) {
-          const studentIdCell = row.cells[1].textContent.toLowerCase();
-          const usernameCell = row.cells[2].textContent.toLowerCase();
-          const statusCell = row.cells[5].textContent;
-          const roleCell = row.cells[5].textContent;
-
-          let showRow = true;
-
-          // 搜索文本过滤
-          if (
-            searchText &&
-            !studentIdCell.includes(searchText) &&
-            !usernameCell.includes(searchText)
-          ) {
-            showRow = false;
-          }
-
-          // 状态过滤
-          if (statusFilter !== "all") {
-            if (statusFilter === "active" && !statusCell.includes("正常")) {
-              showRow = false;
-            } else if (
-              statusFilter === "banned" &&
-              !statusCell.includes("已封禁")
-            ) {
-              showRow = false;
+            function logout() {
+              localStorage.removeItem("isLoggedIn");
+              localStorage.removeItem("username");
+              localStorage.removeItem("loginTime");
+              localStorage.removeItem("isAdmin");
+              alert("已退出登录");
+              window.location.href = "login.html";
             }
-          }
 
-          // 角色过滤
-          if (roleFilter !== "all") {
-            if (roleFilter === "admin" && !roleCell.includes("管理员")) {
-              showRow = false;
-            } else if (roleFilter === "user" && roleCell.includes("管理员")) {
-              showRow = false;
+            // 模拟用户数据
+            const userData = [
+              {
+                id: 1001,
+                studentId: "20230001",
+                username: "张三",
+                email: "zhangsan@example.com",
+                phone: "13800000000",
+                registerTime: "2026-03-01 10:30",
+                status: "正常",
+                role: "用户",
+                postCount: 5,
+              },
+              {
+                id: 1002,
+                studentId: "20230002",
+                username: "李四",
+                email: "lisi@example.com",
+                phone: "13900000000",
+                registerTime: "2026-03-05 14:20",
+                status: "已封禁",
+                role: "用户",
+                postCount: 2,
+              },
+              {
+                id: 1003,
+                studentId: "20230003",
+                username: "王五",
+                email: "wangwu@example.com",
+                phone: "13700000000",
+                registerTime: "2026-03-10 09:15",
+                status: "正常",
+                role: "用户",
+                postCount: 8,
+              },
+              {
+                id: 1004,
+                studentId: "admin001",
+                username: "管理员",
+                email: "admin@example.com",
+                phone: "13600000000",
+                registerTime: "2026-01-01 00:00",
+                status: "正常",
+                role: "管理员",
+                postCount: 12,
+              },
+              {
+                id: 1005,
+                studentId: "20230005",
+                username: "赵六",
+                email: "zhaoliu@example.com",
+                phone: "13500000000",
+                registerTime: "2026-03-12 16:45",
+                status: "正常",
+                role: "用户",
+                postCount: 3,
+              },
+            ];
+
+            function loadUserData() {
+              const tableBody = document.getElementById("userTableBody");
+              const activeCount = document.getElementById("activeCount");
+              const bannedCount = document.getElementById("bannedCount");
+              const adminCount = document.getElementById("adminCount");
+              const totalCount = document.getElementById("totalCount");
+
+              if (!tableBody) return;
+
+              tableBody.innerHTML = "";
+
+              let active = 0;
+              let banned = 0;
+              let admin = 0;
+
+              userData.forEach((user) => {
+                const row = document.createElement("tr");
+
+                // 根据状态计数
+                if (user.status === "正常") active++;
+                else if (user.status === "已封禁") banned++;
+
+                if (user.role === "管理员") admin++;
+
+                row.innerHTML = `
+                  <td>
+                    <input type="checkbox" class="row-checkbox" data-id="${user.id}" onchange="updateSelectedCount()">
+                    ${user.id}
+                  </td>
+                  <td>${user.studentId}</td>
+                  <td>${user.username}</td>
+                  <td>${user.phone}</td>
+                  <td>${user.registerTime}</td>
+                  <td>
+                    <span class="tag ${getStatusClass(user.status)}">${user.status}</span>
+                    ${user.role === "管理员" ? ' <span class="tag tag-admin">管理员</span>' : ""}
+                  </td>
+                  <td class="action-buttons">
+                    <button class="btn btn-view" onclick="viewUser(${user.id})">查看</button>
+                    <button class="btn btn-edit" onclick="editUser(${user.id})">编辑</button>
+                    ${
+                      user.status === "正常" && user.role === "用户"
+                        ? `<button class="btn btn-ban" onclick="toggleUserStatus(${user.id}, 'ban')">封禁</button>`
+                        : user.status === "已封禁"
+                          ? `<button class="btn btn-enable" onclick="toggleUserStatus(${user.id}, 'enable')">解封</button>`
+                          : ""
+                    }
+                    ${
+                      user.role === "用户"
+                        ? `<button class="btn btn-edit" onclick="setAsAdmin(${user.id})">设管理员</button>`
+                        : user.role === "管理员" && user.id !== 1004
+                          ? `<button class="btn btn-enable" onclick="removeAdmin(${user.id})">撤管理员</button>`
+                          : ""
+                    }
+                    ${
+                      user.role === "用户"
+                        ? `<button class="btn btn-delete" onclick="deleteUser(${user.id})">删除</button>`
+                        : ""
+                    }
+                  </td>
+                `;
+
+                tableBody.appendChild(row);
+              });
+
+              // 更新统计数据
+              if (activeCount) activeCount.textContent = active;
+              if (bannedCount) bannedCount.textContent = banned;
+              if (adminCount) adminCount.textContent = admin;
+              if (totalCount) totalCount.textContent = userData.length;
+
+              // 更新选中数量
+              updateSelectedCount();
             }
-          }
 
-          row.style.display = showRow ? "" : "none";
-          if (showRow) matchCount++;
-        }
+            function getStatusClass(status) {
+              switch (status) {
+                case "正常":
+                  return "tag-active";
+                case "已封禁":
+                  return "tag-banned";
+                default:
+                  return "";
+              }
+            }
 
-        // 如果没有匹配结果
-        if (matchCount === 0) {
-          const noResults = document.getElementById("noResultsMessage");
-          if (noResults) {
-            noResults.style.display = "block";
-          }
-        } else {
-          const noResults = document.getElementById("noResultsMessage");
-          if (noResults) {
-            noResults.style.display = "none";
-          }
-        }
-      }
+            function viewUser(id) {
+              const user = userData.find((u) => u.id === id);
+              if (!user) return;
 
-      function updateSelectedCount() {
-        const checkboxes = document.querySelectorAll(".row-checkbox:checked");
-        const selectedCountElement = document.getElementById("selectedCount");
-        if (selectedCountElement) {
-          selectedCountElement.textContent = checkboxes.length;
-        }
-      }
+              alert(`用户详情 - ID: ${user.id}\n
+      学号: ${user.studentId}\n
+      用户名: ${user.username}\n
+      邮箱: ${user.email}\n
+      手机号: ${user.phone}\n
+      注册时间: ${user.registerTime}\n
+      状态: ${user.status}\n
+      角色: ${user.role}\n
+      发帖数: ${user.postCount}`);
+            }
 
-      function selectAllRows() {
-        const selectAllCheckbox = document.getElementById("selectAll");
-        const checkboxes = document.querySelectorAll(".row-checkbox");
+            function editUser(id) {
+              if (confirm(`确定要编辑用户 ID ${id} 的信息吗？`)) {
+                alert(`编辑用户 ID ${id}\n（这里可以跳转到用户编辑页面）`);
+              }
+            }
 
-        checkboxes.forEach((checkbox) => {
-          checkbox.checked = selectAllCheckbox.checked;
-        });
+            function toggleUserStatus(id, action) {
+              const user = userData.find((u) => u.id === id);
+              if (!user) return;
 
-        updateSelectedCount();
-      }
+              if (action === "ban") {
+                if (confirm(`确定要封禁用户 ${user.username} 吗？`)) {
+                  user.status = "已封禁";
+                  alert(`已封禁用户 ${user.username}`);
+                  loadUserData();
+                }
+              } else if (action === "enable") {
+                if (confirm(`确定要解封用户 ${user.username} 吗？`)) {
+                  user.status = "正常";
+                  alert(`已解封用户 ${user.username}`);
+                  loadUserData();
+                }
+              }
+            }
 
-      function batchAction(action) {
-        const selectedIds = [];
-        document
-          .querySelectorAll(".row-checkbox:checked")
-          .forEach((checkbox) => {
-            selectedIds.push(checkbox.getAttribute("data-id"));
-          });
+            function setAsAdmin(id) {
+              const user = userData.find((u) => u.id === id);
+              if (!user) return;
 
-        if (selectedIds.length === 0) {
-          alert("请先选择要操作的用户");
-          return;
-        }
+              if (confirm(`确定要将用户 ${user.username} 设为管理员吗？`)) {
+                user.role = "管理员";
+                alert(`已将用户 ${user.username} 设为管理员`);
+                loadUserData();
+              }
+            }
 
-        if (action === "ban") {
-          if (confirm(`确定要封禁选中的 ${selectedIds.length} 个用户吗？`)) {
-            selectedIds.forEach((id) => {
-              const user = userData.find((u) => u.id === parseInt(id));
-              if (user && user.status === "正常" && user.role === "用户") {
-                user.status = "已封禁";
+            function removeAdmin(id) {
+              const user = userData.find((u) => u.id === id);
+              if (!user) return;
+
+              if (confirm(`确定要撤销用户 ${user.username} 的管理员权限吗？`)) {
+                user.role = "用户";
+                alert(`已撤销用户 ${user.username} 的管理员权限`);
+                loadUserData();
+              }
+            }
+
+            function deleteUser(id) {
+              const user = userData.find((u) => u.id === id);
+              if (!user) return;
+
+              if (
+                confirm(`确定要删除用户 ${user.username} 吗？\n 此操作不可恢复！`)
+              ) {
+                const index = userData.findIndex((u) => u.id === id);
+                if (index !== -1) {
+                  userData.splice(index, 1);
+                  alert(`已删除用户 ${user.username}`);
+                  loadUserData();
+                }
+              }
+            }
+
+            function searchUsers() {
+              const searchText = document
+                .getElementById("searchInput")
+                .value.toLowerCase();
+              const statusFilter = document.getElementById("statusFilter").value;
+              const roleFilter = document.getElementById("roleFilter").value;
+
+              const tableBody = document.getElementById("userTableBody");
+              if (!tableBody) return;
+
+              const rows = tableBody.getElementsByTagName("tr");
+              let matchCount = 0;
+
+              for (let row of rows) {
+                const studentIdCell = row.cells[1].textContent.toLowerCase();
+                const usernameCell = row.cells[2].textContent.toLowerCase();
+                const statusCell = row.cells[5].textContent;
+                const roleCell = row.cells[5].textContent;
+
+                let showRow = true;
+
+                // 搜索文本过滤
+                if (
+                  searchText &&
+                  !studentIdCell.includes(searchText) &&
+                  !usernameCell.includes(searchText)
+                ) {
+                  showRow = false;
+                }
+
+                // 状态过滤
+                if (statusFilter !== "all") {
+                  if (statusFilter === "active" && !statusCell.includes("正常")) {
+                    showRow = false;
+                  } else if (
+                    statusFilter === "banned" &&
+                    !statusCell.includes("已封禁")
+                  ) {
+                    showRow = false;
+                  }
+                }
+
+                // 角色过滤
+                if (roleFilter !== "all") {
+                  if (roleFilter === "admin" && !roleCell.includes("管理员")) {
+                    showRow = false;
+                  } else if (roleFilter === "user" && roleCell.includes("管理员")) {
+                    showRow = false;
+                  }
+                }
+
+                row.style.display = showRow ? "" : "none";
+                if (showRow) matchCount++;
+              }
+
+              // 如果没有匹配结果
+              if (matchCount === 0) {
+                const noResults = document.getElementById("noResultsMessage");
+                if (noResults) {
+                  noResults.style.display = "block";
+                }
+              } else {
+                const noResults = document.getElementById("noResultsMessage");
+                if (noResults) {
+                  noResults.style.display = "none";
+                }
+              }
+            }
+
+            function updateSelectedCount() {
+              const checkboxes = document.querySelectorAll(".row-checkbox:checked");
+              const selectedCountElement = document.getElementById("selectedCount");
+              if (selectedCountElement) {
+                selectedCountElement.textContent = checkboxes.length;
+              }
+            }
+
+            function selectAllRows() {
+              const selectAllCheckbox = document.getElementById("selectAll");
+              const checkboxes = document.querySelectorAll(".row-checkbox");
+
+              checkboxes.forEach((checkbox) => {
+                checkbox.checked = selectAllCheckbox.checked;
+              });
+
+              updateSelectedCount();
+            }
+
+            function batchAction(action) {
+              const selectedIds = [];
+              document
+                .querySelectorAll(".row-checkbox:checked")
+                .forEach((checkbox) => {
+                  selectedIds.push(checkbox.getAttribute("data-id"));
+                });
+
+              if (selectedIds.length === 0) {
+                alert("请先选择要操作的用户");
+                return;
+              }
+
+              if (action === "ban") {
+                if (confirm(`确定要封禁选中的 ${selectedIds.length} 个用户吗？`)) {
+                  selectedIds.forEach((id) => {
+                    const user = userData.find((u) => u.id === parseInt(id));
+                    if (user && user.status === "正常" && user.role === "用户") {
+                      user.status = "已封禁";
+                    }
+                  });
+                  alert(`已封禁 ${selectedIds.length} 个用户`);
+                  loadUserData();
+                }
+              } else if (action === "enable") {
+                if (confirm(`确定要解封选中的 ${selectedIds.length} 个用户吗？`)) {
+                  selectedIds.forEach((id) => {
+                    const user = userData.find((u) => u.id === parseInt(id));
+                    if (user && user.status === "已封禁") {
+                      user.status = "正常";
+                    }
+                  });
+                  alert(`已解封 ${selectedIds.length} 个用户`);
+                  loadUserData();
+                }
+              } else if (action === "delete") {
+                if (
+                  confirm(
+                    `确定要删除选中的 ${selectedIds.length} 个用户吗？\n⚠️ 此操作不可恢复！`,
+                  )
+                ) {
+                  // 从后往前删除，避免索引问题
+                  selectedIds.sort((a, b) => b - a);
+                  selectedIds.forEach((id) => {
+                    const index = userData.findIndex((u) => u.id === parseInt(id));
+                    if (index !== -1 && userData[index].role === "用户") {
+                      userData.splice(index, 1);
+                    }
+                  });
+                  alert(`已删除 ${selectedIds.length} 个用户`);
+                  loadUserData();
+                }
+              }
+
+              // 取消全选
+              document.getElementById("selectAll").checked = false;
+            }
+
+            // 绑定搜索框回车事件
+            document.addEventListener("DOMContentLoaded", function () {
+              const searchInput = document.getElementById("searchInput");
+              if (searchInput) {
+                searchInput.addEventListener("keypress", function (e) {
+                  if (e.key === "Enter") {
+                    searchUsers();
+                  }
+                });
               }
             });
-            alert(`已封禁 ${selectedIds.length} 个用户`);
-            loadUserData();
-          }
-        } else if (action === "enable") {
-          if (confirm(`确定要解封选中的 ${selectedIds.length} 个用户吗？`)) {
-            selectedIds.forEach((id) => {
-              const user = userData.find((u) => u.id === parseInt(id));
-              if (user && user.status === "已封禁") {
-                user.status = "正常";
-              }
-            });
-            alert(`已解封 ${selectedIds.length} 个用户`);
-            loadUserData();
-          }
-        } else if (action === "delete") {
-          if (
-            confirm(
-              `确定要删除选中的 ${selectedIds.length} 个用户吗？\n⚠️ 此操作不可恢复！`,
-            )
-          ) {
-            // 从后往前删除，避免索引问题
-            selectedIds.sort((a, b) => b - a);
-            selectedIds.forEach((id) => {
-              const index = userData.findIndex((u) => u.id === parseInt(id));
-              if (index !== -1 && userData[index].role === "用户") {
-                userData.splice(index, 1);
-              }
-            });
-            alert(`已删除 ${selectedIds.length} 个用户`);
-            loadUserData();
-          }
-        }
-
-        // 取消全选
-        document.getElementById("selectAll").checked = false;
-      }
-
-      // 绑定搜索框回车事件
-      document.addEventListener("DOMContentLoaded", function () {
-        const searchInput = document.getElementById("searchInput");
-        if (searchInput) {
-          searchInput.addEventListener("keypress", function (e) {
-            if (e.key === "Enter") {
-              searchUsers();
-            }
-          });
-        }
-      });
     </script>
   </head>
   <body>
