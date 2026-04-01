@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>校园寻物系统-登录</title>
+    <style>
+        /* 保留你原有的样式，仅补充表单样式 */
+        .login-form {
+            width: 400px;
+            margin: 100px auto;
+            padding: 30px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .form-item {
+            margin: 20px 0;
+        }
+        label {
+            display: inline-block;
+            width: 80px;
+            text-align: right;
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        input {
+            width: 250px;
+            height: 40px;
+            padding: 0 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .btn-login {
+            width: 120px;
+            height: 45px;
+            background: #519872;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 20px auto;
+            display: block;
+        }
+        .title {
+            text-align: center;
+            color: #519872;
+            font-size: 48px;
+            margin-bottom: 30px;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            background: #519872;
+            color: #fff;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            left: 0;
+        }
+        /* 错误提示样式 */
+        .msg {
+            text-align: center;
+            color: red;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-form">
+        <div class="title">校园寻物</div>
+        
+
+        
+        <!-- 表单：提交到/login，对接后端LoginServlet -->
+        <form action="login" method="post">
+            <div class="form-item">
+                <label>学号：</label>
+                <!-- 关键修改：name="studentId" 与后端对应 -->
+                <input type="text" name="studentId" placeholder="请输入学号" required>
+            </div>
+            <div class="form-item">
+                <label>密码：</label>
+                <input type="password" name="password" placeholder="请输入密码" required>
+            </div>
+            <button type="submit" class="btn-login">登录</button>
+        </form>
+    </div>
+    <footer>版权所有 © 2026 校园寻物系统</footer>
+</body>
+</html>
