@@ -1,0 +1,972 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>内容管理 - 校园寻物系统</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        background-color: #90f5ddbd;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .title {
+        background-color: #ffffff;
+        color: #549687;
+        text-align: center;
+        padding: 15px 0;
+        width: 100%;
+        font-size: 24px;
+        border-radius: 0 0 15px 15px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .title-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 20px;
+      }
+
+      .back-to-home {
+        color: white;
+        background-color: #549687;
+        padding: 8px 15px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.3s ease;
+        font-weight: 500;
+      }
+
+      .back-to-home:hover {
+        background-color: #478073;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .title-placeholder {
+        width: 100px;
+      }
+
+      .user-info {
+        background-color: #549687;
+        color: white;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .user-info span {
+        font-size: 16px;
+      }
+
+      .logout-btn {
+        background-color: #b71d1d90;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .logout-btn:hover {
+        background-color: #8e2f2f;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .admin-nav {
+        background-color: #478073;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .admin-nav a {
+        color: white;
+        text-decoration: none;
+        padding: 8px 20px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .admin-nav a:hover {
+        background-color: #549687;
+        transform: translateY(-2px);
+      }
+
+      .admin-nav a.active {
+        background-color: white;
+        color: #549687;
+        font-weight: 600;
+      }
+
+      .main-content {
+        flex: 1;
+        padding: 30px 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 1400px;
+        background-color: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
+
+      .page-title {
+        color: #333;
+        margin-bottom: 25px;
+        font-size: 24px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #549687;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .stats-bar {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+      }
+
+      .stat-card {
+        flex: 1;
+        min-width: 200px;
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid #e1f3ef;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .stat-title {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .stat-value {
+        color: #333;
+        font-size: 32px;
+        font-weight: 600;
+      }
+
+      .filter-bar {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 25px;
+        padding: 20px;
+        background-color: #f9fffe;
+        border-radius: 8px;
+        border: 1px solid #e1f3ef;
+        flex-wrap: wrap;
+      }
+
+      .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 200px;
+      }
+
+      .filter-group label {
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+      }
+
+      .filter-group input,
+      .filter-group select {
+        padding: 10px 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        background-color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        outline: none;
+        width: 100%;
+      }
+
+      .filter-group input:focus,
+      .filter-group select:focus {
+        border-color: #549687;
+        box-shadow: 0 0 0 2px rgba(84, 150, 135, 0.2);
+      }
+
+      .search-btn {
+        align-self: flex-end;
+        background-color: #549687;
+        color: white;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 100px;
+      }
+
+      .search-btn:hover {
+        background-color: #478073;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .table-container {
+        overflow-x: auto;
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+      }
+
+      thead {
+        background-color: #549687;
+      }
+
+      th {
+        color: white;
+        font-weight: 600;
+        text-align: left;
+        padding: 15px;
+        white-space: nowrap;
+        border-right: 1px solid #478073;
+      }
+
+      th:last-child {
+        border-right: none;
+      }
+
+      tbody tr {
+        border-bottom: 1px solid #e0e0e0;
+        transition: background-color 0.3s ease;
+      }
+
+      tbody tr:hover {
+        background-color: #f9fffe;
+      }
+
+      tbody tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+
+      tbody tr:hover:nth-child(even) {
+        background-color: #f9fffe;
+      }
+
+      td {
+        padding: 15px;
+        color: #333;
+      }
+
+      .tag {
+        padding: 4px 12px;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: 600;
+        color: white;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-block;
+      }
+
+      .tag-lost {
+        background-color: #e37979cb;
+      }
+
+      .tag-found {
+        background-color: #63a7dfc9;
+      }
+
+      .tag-status-published {
+        background-color: #4caf4fa7;
+      }
+
+      .tag-status-hidden {
+        background-color: #909399;
+      }
+
+      .tag-status-deleted {
+        background-color: #f44336b8;
+      }
+
+      .btn {
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin: 2px;
+      }
+
+      .btn-view {
+        background-color: #549687;
+        color: white;
+      }
+
+      .btn-view:hover {
+        background-color: #478073;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn-hide {
+        background-color: #ff9900aa;
+        color: white;
+      }
+
+      .btn-hide:hover {
+        background-color: #f57b00b4;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn-restore {
+        background-color: #4caf4fbd;
+        color: white;
+      }
+
+      .btn-restore:hover {
+        background-color: #45a04994;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn-delete {
+        background-color: #f44336c3;
+        color: white;
+      }
+
+      .btn-delete:hover {
+        background-color: #d32f2f8f;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn-edit {
+        background-color: #2195f39f;
+        color: white;
+      }
+
+      .btn-edit:hover {
+        background-color: #1976d2a2;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+      }
+
+      .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-top: 30px;
+      }
+
+      .pagination-btn {
+        padding: 8px 16px;
+        border: 1px solid #549687;
+        background-color: white;
+        color: #549687;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .pagination-btn:hover {
+        background-color: #549687;
+        color: white;
+      }
+
+      .pagination-btn.active {
+        background-color: #549687;
+        color: white;
+      }
+
+      .pagination-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .page-foot {
+        background-color: #549687;
+        color: white;
+        text-align: center;
+        padding: 20px 0;
+        width: 100%;
+        margin-top: auto;
+      }
+
+      .copyright {
+        font-size: 14px;
+        opacity: 0.9;
+      }
+
+      .empty-state {
+        text-align: center;
+        color: #666;
+        padding: 50px;
+        font-size: 16px;
+      }
+
+      .batch-actions {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        align-items: center;
+      }
+
+      .batch-select {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 14px;
+        color: #333;
+      }
+
+      .batch-select input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+      }
+
+      .batch-btn {
+        background-color: #f0f9f7;
+        color: #549687;
+        border: 1px solid #549687;
+        padding: 8px 15px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 13px;
+      }
+
+      .batch-btn:hover {
+        background-color: #549687;
+        color: white;
+        transform: translateY(-2px);
+      }
+
+      .selected-count {
+        font-size: 13px;
+        color: #549687;
+        font-weight: 500;
+      }
+
+      @media (max-width: 768px) {
+        .admin-nav {
+          gap: 10px;
+        }
+
+        .admin-nav a {
+          padding: 6px 12px;
+          font-size: 14px;
+        }
+
+        .filter-bar {
+          flex-direction: column;
+        }
+
+        .filter-group {
+          min-width: 100%;
+        }
+
+        .search-btn {
+          align-self: stretch;
+          justify-content: center;
+        }
+
+        th,
+        td {
+          padding: 10px 8px;
+          font-size: 14px;
+        }
+
+        .action-buttons {
+          flex-direction: column;
+        }
+
+        .btn {
+          width: 100%;
+        }
+
+        .table-container {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        .batch-actions {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .main-content {
+          padding: 20px 15px;
+        }
+
+        .container {
+          padding: 20px;
+        }
+
+        .page-title {
+          font-size: 20px;
+        }
+
+        .stat-card {
+          min-width: 100%;
+        }
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+	window.onload = function () {
+              const isLoggedIn = localStorage.getItem("isLoggedIn");
+              const username = localStorage.getItem("username");
+              const isAdmin = localStorage.getItem("isAdmin");
+
+              // 检查登录状态和管理员权限
+              if (isLoggedIn !== "true" || !username) {
+                alert("请先登录");
+                window.location.href = "login.html";
+                return;
+              }
+
+              if (isAdmin !== "true") {
+                alert("您没有管理员权限！");
+                window.location.href = "index.html";
+                return;
+              }
+
+              // 显示当前用户
+              document.getElementById("usernameDisplay").textContent = username;
+              document.getElementById("usernameDisplay").innerHTML =
+                username +
+                ' <span style="color:#ff9800; font-size:12px;">(管理员)</span>';
+
+              // 初始化数据
+              loadContentData();
+            };
+
+            function logout() {
+              localStorage.removeItem("isLoggedIn");
+              localStorage.removeItem("username");
+              localStorage.removeItem("loginTime");
+              localStorage.removeItem("isAdmin");
+              alert("已退出登录");
+              window.location.href = "login.html";
+            }
+
+
+         // 在 script 标签顶部定义的全局变量
+            let contentData = []; 
+
+            async function loadContentData() {
+                const tableBody = document.getElementById("contentTableBody");
+                const publishedCount = document.getElementById("publishedCount");
+                const hiddenCount = document.getElementById("hiddenCount");
+                const deletedCount = document.getElementById("deletedCount");
+                const totalCount = document.getElementById("totalCount");
+
+                if (!tableBody) return;
+
+                try {
+                    const res = await axios.get("http://localhost:8081/api/admin/content/list");
+                    const items = res.data.data || res.data; 
+
+                    // --- 核心修复：同步全局变量，供批量操作和查看详情使用 ---
+                    contentData = items; 
+
+                    tableBody.innerHTML = "";
+                    let published = 0, hidden = 0, deleted = 0;
+
+                    items.forEach((item) => {
+                        const id = item.itemId; // 关键：改为 itemId
+                        const row = document.createElement("tr");
+                        row.innerHTML = `
+                            <td>
+                                <input type="checkbox" class="row-checkbox" data-id="${id}" onchange="updateSelectedCount()">
+                                ${id}
+                            </td>
+                            <td><span class="tag ${item.itemType === "found" ? "tag-lost" : "tag-found"}">${item.itemType || '未知'}</span></td>
+                            <td>${item.itemName || '无名称'}</td>
+                            <td>${item.userId || '匿名'}</td> 
+                            <td>${item.createdAt || '-'}</td>
+                            <td><span class="tag ${getStatusClass(item.status)}">${item.status || '待处理'}</span></td>
+                            <td class="action-buttons">
+                                <button class="btn btn-view" onclick="viewContent(${id})">查看</button>
+                                ${
+                                    item.status === "已发布"
+                                    ? `<button class="btn btn-hide" onclick="toggleStatus(${id}, 'hide')">下架</button>`
+                                    : item.status === "已下架"
+                                        ? `<button class="btn btn-restore" onclick="toggleStatus(${id}, 'restore')">恢复</button>`
+                                        : ""
+                                }
+                                ${
+                                    item.status !== "已删除"
+                                    ? `<button class="btn btn-delete" onclick="toggleStatus(${id}, 'delete')">删除</button>`
+                                    : ""
+                                }
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                        if (item.status === "已发布") published++;
+                        else if (item.status === "已下架") hidden++;
+                        else if (item.status === "已删除") deleted++;
+                    });
+
+                    // 循环结束后赋值给 DOM
+                    publishedCount.textContent = published;
+                    hiddenCount.textContent = hidden;
+                    deletedCount.textContent = deleted;
+                    totalCount.textContent = items.length;
+                    if(selectAll) selectAll.checked = false;
+
+                } catch (err) {
+                    console.error("加载数据失败:", err);
+                    alert("无法连接服务器，请检查后端。");
+                }
+            }
+            function getStatusClass(status) {
+              switch (status) {
+                case "已发布":
+                  return "tag-status-published";
+                case "已下架":
+                  return "tag-status-hidden";
+                case "已删除":
+                  return "tag-status-deleted";
+                default:
+                  return "";
+              }
+            }
+        
+
+            // 2. 让“查看”按钮弹出真实详情
+            function viewContent(id) {
+                // 从 loadContentData 存好的全局变量里找数据
+                const item = contentData.find(i => i.itemId == id); 
+                if (item) {
+                    alert(`【详情查看】\n物品名称：${item.itemName}\n类型：${item.itemType}\n发布人：${item.userId}\n发布时间：${item.createdAt}\n状态：${item.status}`);
+                } else {
+                    alert("未找到该项详情");
+                }
+            }
+            async function toggleStatus(id, action) {
+                if (!confirm(`确定要执行此操作吗？`)) return;
+
+                try {
+                    // 注意：路径要和 Controller 的 @RequestMapping + @PostMapping 一致
+                    const res = await axios.post("http://localhost:8081/api/admin/content/updateStatus", {
+                        id: id,
+                        action: action // 这里传 'hide', 'restore' 或 'delete'
+                    });
+
+                    if (res.data.code === 200) {
+                        alert("操作成功！");
+                        loadContentData(); // 刷新列表，你会看到状态变了，按钮也跟着变了
+                    }
+                } catch (err) {
+                    console.error("操作失败", err);
+                    alert("操作失败，请检查网络或后端接口");
+                }
+            }
+         // 删除按钮逻辑
+            async function deleteContent(id) {
+                if (!confirm("确定要删除这条帖子吗？")) return;
+                
+                try {
+                    await axios.delete(`http://localhost:8081/api/admin/content/${id}`);
+                    alert("删除成功");
+                    loadContentData(); // 重新加载表格数据，实现页面无刷新刷新
+                } catch (err) {
+                    alert("删除失败");
+                }
+            }
+
+            function searchContent() {
+                // 1. 获取筛选器的值并去空格
+                const searchText = document.getElementById("searchInput").value.trim().toLowerCase();
+                const typeFilter = document.getElementById("typeFilter").value.trim(); 
+                const statusFilter = document.getElementById("statusFilter").value.trim();
+
+                const rows = document.querySelectorAll("#contentTableBody tr");
+                let hasVisibleRow = false;
+
+                rows.forEach(row => {
+                    // 2. 获取单元格内容（建议增加 trim 去除可能存在的换行符或空格）
+                    const typeText = row.cells[1].innerText.trim();      // 类型列
+                    const nameText = row.cells[2].innerText.trim().toLowerCase(); // 名称列
+                    const publisherText = row.cells[3].innerText.trim().toLowerCase(); // 发布人列
+                    const statusText = row.cells[5].innerText.trim();    // 状态列
+
+                    // 3. 匹配逻辑
+                    // 搜索框：匹配名称或发布人
+                    const matchesSearch = !searchText || nameText.includes(searchText) || publisherText.includes(searchText);
+                    
+                    // 类型筛选：如果选的是 'all' 则通过，否则必须完全相等
+                    // 注意：这里用 includes 是为了防止页面上显示的是 "寻物启事" 而数据是 "寻物"
+                    const matchesType = (typeFilter === "all" || typeText.includes(typeFilter) || typeFilter.includes(typeText));
+                    
+                    // 状态筛选
+                    const matchesStatus = (statusFilter === "all" || statusText === statusFilter);
+
+                    // 4. 决定是否显示
+                    if (matchesSearch && matchesType && matchesStatus) {
+                        row.style.display = "";
+                        hasVisibleRow = true;
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+
+                // 5. 处理无结果提示
+                const noResults = document.getElementById("noResultsMessage");
+                if (noResults) {
+                    noResults.style.display = hasVisibleRow ? "none" : "block";
+                }
+            }
+            function updateSelectedCount() {
+              const checkboxes = document.querySelectorAll(".row-checkbox:checked");
+              const selectedCountElement = document.getElementById("selectedCount");
+              if (selectedCountElement) {
+                selectedCountElement.textContent = checkboxes.length;
+              }
+            }
+
+            function selectAllRows() {
+              const selectAllCheckbox = document.getElementById("selectAll");
+              const checkboxes = document.querySelectorAll(".row-checkbox");
+
+              checkboxes.forEach((checkbox) => {
+                checkbox.checked = selectAllCheckbox.checked;
+              });
+
+              updateSelectedCount();
+            }
+
+            async function batchAction(action) {
+                const selectedIds = Array.from(document.querySelectorAll(".row-checkbox:checked"))
+                                         .map(cb => cb.getAttribute("data-id"));
+
+                if (selectedIds.length === 0) return alert("请先勾选要操作的项目");
+
+                if (!confirm(`确定要批量执行【${action}】操作吗？`)) return;
+
+                // 循环发送请求
+                for (const id of selectedIds) {
+                    await axios.post('http://localhost:8081/api/admin/content/updateStatus', {
+                        id: id,
+                        action: action
+                    });
+                }
+                alert("批量操作完成");
+                location.reload(); // 刷新页面看结果
+            }
+         
+
+            // 绑定搜索框回车事件
+            document.addEventListener("DOMContentLoaded", function () {
+              const searchInput = document.getElementById("searchInput");
+              if (searchInput) {
+                searchInput.addEventListener("keypress", function (e) {
+                  if (e.key === "Enter") {
+                    searchContent();
+                  }
+                });
+              }
+            });
+    </script>
+  </head>
+  <body>
+    <div class="title">
+      <div class="title-container">
+        <a href="home.html" class="back-to-home">← 返回主页</a>
+        <h1>校园寻物系统 - 管理员后台</h1>
+        <div class="title-placeholder"></div>
+      </div>
+    </div>
+
+    <div class="user-info">
+      <span>当前用户：<span id="usernameDisplay"></span></span>
+      <button class="logout-btn" onclick="logout()">退出登录</button>
+    </div>
+
+    <div class="admin-nav">
+      <a href="home.html">首页</a>
+      <a href="user-manage.html">用户管理</a>
+      <a href="content-manage.html" class="active">内容管理</a>
+      <a href="information-audit-manage.html">信息审核</a>
+      <a href="report.html">举报处理</a>
+    </div>
+
+    <div class="main-content">
+      <div class="container">
+        <h2 class="page-title">内容管理</h2>
+
+        <div class="stats-bar">
+          <div class="stat-card">
+            <div class="stat-title">已发布</div>
+            <div class="stat-value" id="publishedCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">已下架</div>
+            <div class="stat-value" id="hiddenCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">已删除</div>
+            <div class="stat-value" id="deletedCount">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-title">总计</div>
+            <div class="stat-value" id="totalCount">0</div>
+          </div>
+        </div>
+
+        <div class="batch-actions">
+          <div class="batch-select">
+            <input type="checkbox" id="selectAll" onchange="selectAllRows()" />
+            <label for="selectAll">全选</label>
+            <span class="selected-count"
+              >已选择 <span id="selectedCount">0</span> 项</span
+            >
+          </div>
+          <button class="batch-btn" onclick="batchAction('hide')">
+            批量下架
+          </button>
+          <button class="batch-btn" onclick="batchAction('restore')">
+            批量恢复
+          </button>
+          <button class="batch-btn" onclick="batchAction('delete')">
+            批量删除
+          </button>
+        </div>
+
+        <div class="filter-bar">
+          <div class="filter-group">
+            <label for="searchInput">搜索</label>
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="输入物品名称或发布人"
+            />
+          </div>
+          <div class="filter-group">
+            <label for="typeFilter">信息类型</label>
+            <select id="typeFilter" onchange="searchContent()">
+              <option value="all">全部类型</option>
+              <option value="found">寻物启事</option>
+              <option value="lost">失物招领</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="statusFilter">状态</label>
+            <select id="statusFilter" onchange="searchContent()">
+              <option value="all">全部状态</option>
+              <option value="已发布">已发布</option>
+              <option value="已下架">已下架</option>
+              <option value="已删除">已删除</option>
+            </select>
+          </div>
+          <button class="search-btn" onclick="searchContent()">搜索</button>
+        </div>
+
+        <div id="noResultsMessage" class="empty-state" style="display: none">
+          没有找到匹配的内容
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>类型</th>
+                <th>物品名称</th>
+                <th>发布人</th>
+                <th>发布时间</th>
+                <th>状态</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody id="contentTableBody">
+              <!-- 数据将由JavaScript动态生成 -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <button class="pagination-btn" onclick="changePage(-1)" disabled>
+            上一页
+          </button>
+          <span style="color: #666">第 1 页 / 共 1 页</span>
+          <button class="pagination-btn" onclick="changePage(1)" disabled>
+            下一页
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-foot">
+      <p class="copyright">版权所有 © 2026 校园寻物系统</p>
+    </div>
+  </body>
+</html>

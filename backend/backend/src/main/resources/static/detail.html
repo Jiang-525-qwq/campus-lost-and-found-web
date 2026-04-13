@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>物品详情 - 校园寻物系统</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        background-color: #90f5ddbd;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .title {
+        background-color: #ffffff;
+        color: #549687;
+        text-align: center;
+        padding: 15px 0;
+        width: 100%;
+        font-size: 24px;
+        border-radius: 0 0 15px 15px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .user-info {
+        background-color: #549687;
+        color: white;
+        padding: 10px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .user-info span {
+        font-size: 16px;
+      }
+
+      .logout-btn {
+        background-color: #b71d1d90;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .logout-btn:hover {
+        background-color: #8e2f2f;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .main-content {
+        flex: 1;
+        padding: 30px 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      /* 详情卡片样式 */
+      .detail-card {
+        width: 100%;
+        max-width: 1200px;
+        background-color: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 30px;
+      }
+
+      .detail-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #eee;
+      }
+
+      .detail-header h1 {
+        color: #333;
+        font-size: 28px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+
+      .small-title {
+        color: #549687;
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 5px;
+      }
+
+      .status-group {
+        display: flex;
+        gap: 10px;
+      }
+
+      .badge {
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        color: white;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .badge-lost {
+        background-color: #e37979cb;
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        color: white;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .badge-found {
+        background-color: #63a7dfc9;
+      }
+
+      .badge-pending {
+        background-color: #efc136;
+      }
+
+      .badge-claimed {
+        background-color: #5d4b1548;
+      }
+
+      .detail-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+      }
+
+      .detail-image-wrap {
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .detail-image {
+        width: 100%;
+        height: 400px;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+      }
+
+      .detail-image:hover {
+        transform: scale(1.02);
+      }
+
+      .detail-info {
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+      }
+
+      .item-name {
+        color: #333;
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+
+      .item-desc {
+        color: #444;
+        line-height: 1.7;
+        font-size: 16px;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        background-color: #f9f9f9;
+        padding: 25px;
+        border-radius: 10px;
+      }
+
+      .info-box {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .info-label {
+        color: #666;
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .info-value {
+        color: #333;
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      .publisher-panel {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 20px;
+        background-color: #f0f9f7;
+        border-radius: 10px;
+      }
+
+      .publisher-avatar {
+        width: 50px;
+        height: 50px;
+        background-color: #549687;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 600;
+      }
+
+      .publisher-meta {
+        flex: 1;
+      }
+
+      .publisher-name {
+        color: #333;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+
+      .publisher-time {
+        color: #888;
+        font-size: 14px;
+      }
+
+      .action-row {
+        display: flex;
+        gap: 15px;
+        margin-top: 20px;
+      }
+
+      .btn {
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .btn-primary {
+        background-color: #549687;
+        color: white;
+        flex: 1;
+      }
+
+      .btn-primary:hover {
+        background-color: #478073;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn-light {
+        background-color: #f0f9f7;
+        color: #549687;
+        border: 2px solid #549687;
+      }
+
+      .btn-light:hover {
+        background-color: #e1f3ef;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .btn-danger {
+        background-color: #ff6b6b;
+        color: white;
+        flex: 1;
+      }
+
+      .btn-danger:hover {
+        background-color: #ff5252;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 评论区域 */
+      .comments-section {
+        width: 100%;
+        max-width: 1200px;
+        background-color: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+      }
+
+      .comments-section h2 {
+        color: #333;
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+      }
+
+      .comment-form {
+        margin-bottom: 30px;
+        background-color: #f9f9f9;
+        padding: 25px;
+        border-radius: 10px;
+      }
+
+      .comment-input {
+        width: 100%;
+        min-height: 100px;
+        padding: 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        resize: vertical;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+        outline: none;
+      }
+
+      .comment-input:focus {
+        border-color: #549687;
+        box-shadow: 0 0 0 2px rgba(84, 150, 135, 0.2);
+      }
+
+      .comment-submit {
+        background-color: #549687;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .comment-submit:hover {
+        background-color: #478073;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .comments-list {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .comment-item {
+        padding: 20px;
+        background-color: #f9f9f9;
+        border-radius: 10px;
+        border-left: 4px solid #549687;
+      }
+
+      .comment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .comment-author {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .comment-avatar {
+        width: 40px;
+        height: 40px;
+        background-color: #63a7dfc9;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .comment-author-name {
+        color: #333;
+        font-weight: 600;
+        font-size: 16px;
+      }
+
+      .comment-time {
+        color: #888;
+        font-size: 14px;
+      }
+
+      .comment-content {
+        color: #444;
+        line-height: 1.6;
+        font-size: 15px;
+      }
+
+      /* 返回按钮 */
+      .back-link {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background-color: #549687;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .back-link:hover {
+        background-color: #478073;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      /* 举报模态框 */
+      .report-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .report-modal.active {
+        display: flex;
+      }
+
+      .report-form {
+        background-color: white;
+        padding: 30px;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      }
+
+      .report-form h3 {
+        color: #333;
+        font-size: 22px;
+        margin-bottom: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-weight: 600;
+      }
+
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        outline: none;
+      }
+
+      .form-group select:focus,
+      .form-group textarea:focus {
+        border-color: #549687;
+        box-shadow: 0 0 0 2px rgba(84, 150, 135, 0.2);
+      }
+
+      .form-group textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+
+      .form-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+      }
+
+      .page-foot {
+        background-color: #549687;
+        color: white;
+        text-align: center;
+        padding: 20px 0;
+        width: 100%;
+        margin-top: auto;
+      }
+
+      .copyright {
+        font-size: 14px;
+        opacity: 0.9;
+      }
+
+      /* 响应式设计 */
+      @media (max-width: 768px) {
+        .detail-content {
+          grid-template-columns: 1fr;
+          gap: 30px;
+        }
+
+        .detail-image {
+          height: 300px;
+        }
+
+        .info-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .action-row {
+          flex-direction: column;
+        }
+
+        .btn {
+          width: 100%;
+        }
+
+        .detail-card,
+        .comments-section {
+          padding: 20px;
+        }
+
+        .back-link {
+          position: relative;
+          top: auto;
+          left: auto;
+          margin-bottom: 20px;
+          align-self: flex-start;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .main-content {
+          padding: 20px 15px;
+        }
+
+        .detail-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 15px;
+        }
+
+        .status-group {
+          width: 100%;
+          justify-content: flex-start;
+        }
+
+        .comment-form {
+          padding: 15px;
+        }
+      }
+    </style>
+   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        // 1. 初始化数据
+        const urlParams = new URLSearchParams(window.location.search);
+        const itemId = urlParams.get('id'); 
+
+        window.onload = function () {
+            if (!itemId) {
+                alert("未找到物品ID");
+                window.location.href = "home.html";
+                return;
+            }
+            const username = localStorage.getItem("username") || "游客";
+            document.getElementById("usernameDisplay").textContent = username;
+            
+            loadItemDetail();
+            loadComments();
+        };
+
+        // 2. 加载详情 (端口统一 8081)
+        async function loadItemDetail() {
+            try {
+                const res = await axios.get(`http://localhost:8081/api/items/${itemId}`);
+                const item = res.data;
+                document.querySelector(".item-name").innerText = item.item_name;
+                document.querySelector(".item-desc").innerText = item.description;
+                
+                const infoValues = document.querySelectorAll(".info-value");
+                infoValues[0].innerText = item.location;
+                infoValues[1].innerText = item.lost_found_time;
+                infoValues[2].innerText = item.create_time || "刚刚";
+                infoValues[3].innerText = "见描述";
+
+                const badge = document.querySelector(".badge-lost");
+                if(item.item_type === 'found') {
+                    badge.innerText = "招领启事";
+                    badge.className = "badge-found";
+                } else {
+                    badge.innerText = "寻物启事";
+                    badge.className = "badge-lost";
+                }
+            } catch (err) {
+                console.error("加载详情失败", err);
+            }
+        }
+
+        // 3. 评论逻辑
+        async function loadComments() {
+            try {
+                const res = await axios.get(`http://localhost:8081/api/comments?itemId=${itemId}`);
+                const list = document.getElementById("commentsList");
+                list.innerHTML = res.data.map(c => `
+                    <div style="border-bottom: 1px solid #eee; padding: 10px 0;">
+                        <strong>${c.username}</strong> <small style="color: #999;">${c.create_time}</small>
+                        <p>${c.content}</p>
+                    </div>
+                `).join('');
+            } catch (err) { console.error(err); }
+        }
+
+        async function submitComment() {
+            const content = document.getElementById("commentInput").value;
+            const userId = localStorage.getItem("userId");
+            if (!userId) return alert("请先登录");
+            try {
+                await axios.post("http://localhost:8081/api/comments", {
+                    item_id: itemId,
+                    user_id: userId,
+                    content: content
+                });
+                document.getElementById("commentInput").value = "";
+                loadComments();
+            } catch (err) { alert("评价失败"); }
+        }
+
+        // --- 举报功能 (独立函数，不再嵌套) ---
+
+        function openReportModal() {
+            const userId = localStorage.getItem("userId");
+            if (!userId || userId === "undefined") {
+                alert("请先登录后再举报");
+                window.location.href = "logIn.html";
+                return;
+            }
+            document.getElementById("reportModal").style.display = "flex";
+        }
+
+        function closeReportModal() {
+            document.getElementById("reportModal").style.display = "none";
+        }
+
+        async function submitReport() {
+            const reporterId = localStorage.getItem("userId");
+            const reason = document.getElementById("reportReason").value;
+            const desc = document.getElementById("reportDesc").value;
+
+            const reportData = {
+                itemId: parseInt(itemId),      // 对应 Java 的 itemId
+                reporterId: parseInt(reporterId),
+                reason: reason,
+                description: desc
+            };
+
+            try {
+                const res = await axios.post("http://localhost:8081/api/reports", reportData);
+                if (res.data.code === 200) {
+                    alert("举报已提交，感谢您的监督！");
+                    closeReportModal();
+                }
+            } catch (err) {
+                alert("提交失败，请检查后端服务是否启动");
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = "logIn.html";
+        }
+    </script>
+  </head>
+  <body>
+    <div class="title">
+      <h1>校园寻物系统</h1>
+    </div>
+
+    <div class="user-info">
+      <span>当前用户：<span id="usernameDisplay"></span></span>
+      <button class="logout-btn" onclick="logout()">退出登录</button>
+    </div>
+
+    <div class="main-content">
+      <a href="home.html" class="back-link">← 返回主页</a>
+
+      <section class="detail-card">
+        <div class="detail-header">
+          <div>
+            <p class="small-title">Campus Lost &amp; Found</p>
+            <h1>物品详情</h1>
+          </div>
+          <div class="status-group">
+            <span class="badge badge-lost">寻物启事</span>
+            <span class="badge badge-pending">待认领</span>
+          </div>
+        </div>
+
+        <div class="detail-content">
+          <div class="detail-image-wrap">
+            <img
+              src="https://img95.699pic.com/photo/32198/7921.jpg_wh300.jpg!/fh/300/quality/90"
+              alt="物品相关图片"
+              class="detail-image"
+            />
+          </div>
+
+          <div class="detail-info">
+            <h2 class="item-name">加载中...</h2>
+<p class="item-desc">正在获取详情内容，请稍候...</p>
+
+<div class="info-grid">
+  <div class="info-box">
+    <span class="info-label">地点</span>
+    <span class="info-value">-</span>
+  </div>
+  <div class="info-box">
+    <span class="info-label">时间</span>
+    <span class="info-value">-</span>
+  </div>
+  <div class="info-box">
+    <span class="info-label">发布时间</span>
+    <span class="info-value">-</span>
+  </div>
+  <div class="info-box">
+    <span class="info-label">联系方式</span>
+    <span class="info-value">-</span>
+  </div>
+</div>
+
+            <div class="publisher-panel">
+              <div class="publisher-avatar">张</div>
+              <div class="publisher-meta">
+                <div class="publisher-name">张同学</div>
+                <div class="publisher-time">发布于 2026-03-18</div>
+              </div>
+            </div>
+
+            <div class="action-row">
+              <button class="btn btn-light" onclick="shareItem()">分享</button>
+              <button class="btn btn-danger" onclick="openReportModal()">
+                举报帖子
+              </button>
+              
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 评论区域 -->
+      <section class="comments-section">
+        <h2>评论</h2>
+
+        <!-- 评论表单 -->
+        <div class="comment-form">
+          <textarea
+            id="commentInput"
+            class="comment-input"
+            placeholder="写下你的评论...（按Ctrl+Enter提交）"
+          ></textarea>
+          <button class="comment-submit" onclick="submitComment()">
+            发表评论
+          </button>
+        </div>
+
+        <!-- 评论列表 -->
+        <div id="commentsList" class="comments-list">
+          <!-- 评论会通过JavaScript动态加载 -->
+        </div>
+      </section>
+    </div>
+
+    <!-- 举报模态框 -->
+    <div id="reportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 20px; border-radius: 8px; width: 300px;">
+        <h3>举报原因</h3>
+        <select id="reportReason" style="width: 100%; margin: 10px 0; padding: 5px;">
+            <option value="信息虚假">信息虚假</option>
+            <option value="广告骚扰">广告骚扰</option>
+            <option value="其他">其他</option>
+        </select>
+        <textarea id="reportDesc" placeholder="详细说明" style="width: 100%; height: 60px;"></textarea>
+        <div style="margin-top: 10px; display: flex; gap: 10px;">
+            <button onclick="submitReport()" style="flex: 1; background: #549687; color: white; border: none; padding: 8px; border-radius: 4px;">提交</button>
+            <button onclick="closeReportModal()" style="flex: 1; background: #ccc; border: none; padding: 8px; border-radius: 4px;">取消</button>
+        </div>
+    </div>
+</div>
+    <div class="page-foot">
+      <p class="copyright">版权所有 © 2026 校园寻物系统</p>
+    </div>
+  </body>
+</html>

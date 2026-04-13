@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>校园寻物主页</title>
+    <style>
+      /* --- 核心样式修复 --- */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background-color: #90f5ddbd;
+        min-height: 100vh;
+      }
+      .title {
+        background-color: #ffffff;
+        color: #549687;
+        text-align: center;
+        padding: 15px 0;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .user-info {
+        background-color: #549687;
+        color: white;
+        padding: 10px 5%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .logout-btn {
+        background-color: #ff4d4f; color: white; border: none;
+        padding: 6px 15px; border-radius: 6px; cursor: pointer;
+      }
+
+      .main-content {
+        padding: 20px 5%;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .nav-bar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 20px; }
+      .nav-bar a {
+        text-decoration: none; color: white; background: #549687;
+        padding: 10px 20px; border-radius: 8px; font-size: 14px;
+      }
+
+      .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
+      .search-box input { flex: 1; padding: 12px; border-radius: 8px; border: none; }
+      .search-box button { padding: 0 25px; background: #549687; color: white; border: none; border-radius: 8px; cursor: pointer; }
+
+      /* 帖子卡片样式 */
+      .item-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        transition: 0.3s;
+        cursor: pointer;
+      }
+      .item-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+      .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+      .tag { padding: 4px 10px; border-radius: 4px; font-size: 12px; color: white; }
+      .tag-lost { background: #ff7875; }
+      .tag-found { background: #69c0ff; }
+      .item-meta { font-size: 13px; color: #888; margin: 8px 0; }
+      .item-desc { color: #444; line-height: 1.5; }
+
+      .type-tags { display: flex; gap: 10px; margin-bottom: 15px; }
+      .type-tag { padding: 8px 18px; background: #f0f2f5; border-radius: 20px; cursor: pointer; }
+      .type-tag.active { background: #549687; color: white; }
+      .filter-group {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+.filter-group select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: white;
+  color: #549687;
+  outline: none;
+  cursor: pointer;
+  flex: 1; /* 让它们平分宽度 */
+}
+    </style>
+  </head>
+  <body>
+    <div class="title"><h1>校园寻物系统</h1></div>
+
+    <div class="user-info">
+      <span>欢迎，<b id="usernameDisplay">游客</b></span>
+      <button class="logout-btn" onclick="logout()">退出</button>
+    </div>
+
+    <div class="main-content">
+      <div class="nav-bar">
+      <a href="information-audit-manage.html" class="admin-link" id="adminBtn" style="display: none; background: #d9534f;">管理员后台</a>
+        <a href="post-post.html">发布新帖子</a>
+        <a href="myself.html">我的主页</a>
+      </div>
+
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="搜索关键词..." />
+        <button onclick="handleSearch()">搜索</button>
+      </div>
+
+      <div class="type-tags" id="typeFilter">
+    <div class="type-tag active" data-type="all">全部</div>
+    <div class="type-tag" data-type="lost">寻物</div>
+    <div class="type-tag" data-type="found">招领</div>
+</div>
+
+<div class="filter-group">
+    <select id="locationFilter">
+        <option value="all">所有地点</option>
+        <option value="图书馆">图书馆</option>
+        <option value="教学楼">教学楼</option>
+        <option value="食堂">食堂</option>
+        <option value="操场">操场</option>
+        <option value="宿舍区">宿舍区</option>
+    </select>
+
+    <select id="timeFilter">
+        <option value="all">所有时间</option>
+        <option value="today">今天</option>
+        <option value="three_days">近三天</option>
+        <option value="week">近一周</option>
+    </select>
+</div>
+      </div>
+
+      <div id="item-list">正在加载帖子...</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+      // 1. 初始化检查登录状态
+      function checkAuth() {
+    const username = localStorage.getItem("username");
+    const isAdmin = localStorage.getItem("isAdmin"); // 获取管理员标记
+
+    if (username) {
+        document.getElementById("usernameDisplay").innerText = username;
+    } else {
+        document.getElementById("usernameDisplay").innerText = "游客";
+    }
+
+    // 判断逻辑：如果 isAdmin 存在且等于 "true"
+    const adminBtn = document.getElementById("adminBtn");
+    if (adminBtn && isAdmin === "true") {
+        adminBtn.style.display = "block"; // 显示按钮
+    } else if (adminBtn) {
+        adminBtn.style.display = "none";  // 否则隐藏
+    }
+}
+
+      // 2. 搜索按钮点击事件
+      function handleSearch() {
+        const kw = document.getElementById('searchInput').value;
+        loadItems(kw); 
+      }
+   // 监听地点和时间下拉框的变化
+      document.getElementById("locationFilter").addEventListener("change", () => loadItems(document.getElementById('searchInput').value));
+      document.getElementById("timeFilter").addEventListener("change", () => loadItems(document.getElementById('searchInput').value));
+
+      async function loadItems(keyword = '') {
+    	    const listContainer = document.getElementById('item-list');
+    	    try {
+    	        let url = 'http://localhost:8081/api/items';
+    	        if (keyword) {
+    	            url += `?keyword=${encodeURIComponent(keyword)}`;
+    	        }
+
+    	        const res = await axios.get(url);
+    	        const items = res.data;
+
+    	        // 【关键修复：获取当前选中的值】
+    	        const activeType = document.querySelector(".type-tag.active").dataset.type;
+    	        const selectedLocation = document.getElementById("locationFilter").value;
+    	        const selectedTime = document.getElementById("timeFilter").value;
+
+    	        listContainer.innerHTML = ''; 
+
+    	        if (items.length === 0) {
+    	            listContainer.innerHTML = '<p style="text-align:center; padding:50px;">未找到相关帖子</p>';
+    	            return;
+    	        }
+
+    	        items.forEach(item => {
+    	            // 过滤逻辑 1: 分类
+    	            if (activeType !== 'all' && item.item_type !== activeType) return;
+    	            
+    	            // 过滤逻辑 2: 地点 (检查 item.location 是否包含选中的关键词)
+    	            if (selectedLocation !== 'all' && (!item.location || !item.location.includes(selectedLocation))) return;
+    	            
+    	            // 过滤逻辑 3: 时间
+    	            if (selectedTime !== 'all') {
+    	                const itemDate = new Date(item.lost_found_time);
+    	                const now = new Date();
+    	                const diffDays = (now - itemDate) / (1000 * 60 * 60 * 24);
+    	                
+    	                if (selectedTime === 'today' && diffDays > 1) return;
+    	                if (selectedTime === 'three_days' && diffDays > 3) return;
+    	                if (selectedTime === 'week' && diffDays > 7) return;
+    	            }
+
+    	            // 只有通过上面所有 return 的才会被渲染
+    	            listContainer.innerHTML += `
+    	              <div class="item-card" onclick="location.href='detail.html?id=${item.item_id}'">
+    	                <div class="item-header">
+    	                  <h3>${item.item_name}</h3>
+    	                  <span class="tag ${item.item_type === 'lost' ? 'tag-lost' : 'tag-found'}">
+    	                    ${item.item_type === 'lost' ? '寻物' : '招领'}
+    	                  </span>
+    	                </div>
+    	                <div class="item-meta">
+    	                  地点：${item.location} | 时间：${item.lost_found_time}
+    	                </div>
+    	                <div class="item-desc">${item.description || '暂无描述'}</div>
+    	              </div>
+    	            `;
+    	        });
+
+    	    } catch (err) {
+    	        console.error("加载失败:", err);
+    	        listContainer.innerHTML = '<p style="text-align:center; color:red;">后端接口异常</p>';
+    	    }
+    	}
+
+      // 4. 分类切换
+      document.getElementById("typeFilter").addEventListener("click", (e) => {
+        if (e.target.classList.contains("type-tag")) {
+          document.querySelectorAll(".type-tag").forEach(t => t.classList.remove("active"));
+          e.target.classList.add("active");
+          const kw = document.getElementById('searchInput').value;
+          loadItems(kw); // 切换分类时带上当前搜索词重新加载
+        }
+      });
+
+      // 5. 退出
+      function logout() {
+        localStorage.clear();
+        window.location.href = "logIn.html";
+      }
+
+      // 页面加载运行
+      window.onload = () => {
+        checkAuth();
+        loadItems();
+      };
+    </script>
+  </body>
+</html>
