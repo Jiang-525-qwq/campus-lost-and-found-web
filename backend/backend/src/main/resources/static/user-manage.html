@@ -489,6 +489,89 @@
         font-weight: 500;
       }
 
+      .modal-mask {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.45);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        z-index: 1000;
+      }
+
+      .modal-mask.show {
+        display: flex;
+      }
+
+      .modal-card {
+        width: 100%;
+        max-width: 420px;
+        background-color: #fff;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+      }
+
+      .modal-title {
+        font-size: 20px;
+        color: #333;
+        margin-bottom: 8px;
+      }
+
+      .modal-desc {
+        color: #666;
+        font-size: 14px;
+        line-height: 1.6;
+        margin-bottom: 18px;
+      }
+
+      .modal-form {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 8px;
+      }
+
+      .modal-btn {
+        min-width: 96px;
+        padding: 10px 18px;
+        border-radius: 8px;
+        border: 1px solid #549687;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .modal-btn-cancel {
+        background-color: #fff;
+        color: #549687;
+      }
+
+      .modal-btn-cancel:hover {
+        background-color: #f0f9f7;
+      }
+
+      .modal-btn-confirm {
+        background-color: #549687;
+        color: #fff;
+      }
+
+      .modal-btn-confirm:hover {
+        background-color: #478073;
+      }
+
+      .modal-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
       @media (max-width: 768px) {
         .admin-nav {
           gap: 10px;
@@ -534,6 +617,18 @@
         .batch-actions {
           flex-direction: column;
           align-items: flex-start;
+        }
+
+        .modal-card {
+          padding: 20px;
+        }
+
+        .modal-actions {
+          flex-direction: column-reverse;
+        }
+
+        .modal-btn {
+          width: 100%;
         }
       }
 
@@ -1191,6 +1286,12 @@
           loadFailed: "\u6570\u636e\u52a0\u8f7d\u5931\u8d25\uff0c\u8bf7\u786e\u8ba4\u540e\u7aef\u5df2\u542f\u52a8",
           noMatch: "\u6ca1\u6709\u5339\u914d\u7684\u7528\u6237",
           selectUser: "\u8bf7\u5148\u9009\u62e9\u8981\u64cd\u4f5c\u7684\u7528\u6237",
+          invalidRange: "\u8bf7\u8f93\u5165\u7eaf\u6570\u5b57\u5b66\u53f7\u8303\u56f4",
+          lengthMismatch: "\u6700\u5c0f\u548c\u6700\u5927\u5b66\u53f7\u4f4d\u6570\u5fc5\u987b\u4e00\u81f4",
+          invalidOrder: "\u6700\u5c0f\u5b66\u53f7\u4e0d\u80fd\u5927\u4e8e\u6700\u5927\u5b66\u53f7",
+          batchRegisterSuccess: "\u6279\u91cf\u6ce8\u518c\u5b8c\u6210",
+          batchRegisterFailed: "\u6279\u91cf\u6ce8\u518c\u5931\u8d25",
+          defaultPasswordRule: "\u9ed8\u8ba4\u5bc6\u7801\u4e3a\u5b66\u53f7\u540e\u516d\u4f4d",
           currentPage: "\u7b2c",
           page: "\u9875",
           totalPage: "\u5171",
@@ -1314,6 +1415,74 @@
 
         window.searchUsers = function () { applyFilters(); };
 
+        window.openBatchRegisterModal = function () {
+          var modal = document.getElementById("batchRegisterModal");
+          if (!modal) return;
+          modal.classList.add("show");
+          var minInput = document.getElementById("batchRegisterMinId");
+          if (minInput) minInput.focus();
+        };
+
+        window.closeBatchRegisterModal = function () {
+          var modal = document.getElementById("batchRegisterModal");
+          if (!modal) return;
+          modal.classList.remove("show");
+          var minInput = document.getElementById("batchRegisterMinId");
+          var maxInput = document.getElementById("batchRegisterMaxId");
+          if (minInput) minInput.value = "";
+          if (maxInput) maxInput.value = "";
+          var confirmBtn = document.getElementById("batchRegisterConfirmBtn");
+          if (confirmBtn) confirmBtn.disabled = false;
+        };
+
+        window.submitBatchRegister = async function () {
+          var minInput = document.getElementById("batchRegisterMinId");
+          var maxInput = document.getElementById("batchRegisterMaxId");
+          var confirmBtn = document.getElementById("batchRegisterConfirmBtn");
+          var minStudentId = minInput ? minInput.value.trim() : "";
+          var maxStudentId = maxInput ? maxInput.value.trim() : "";
+
+          if (!/^\d+$/.test(minStudentId) || !/^\d+$/.test(maxStudentId)) {
+            alert(TEXT.invalidRange);
+            return;
+          }
+          if (minStudentId.length !== maxStudentId.length) {
+            alert(TEXT.lengthMismatch);
+            return;
+          }
+          if (minStudentId > maxStudentId) {
+            alert(TEXT.invalidOrder);
+            return;
+          }
+
+          try {
+            if (confirmBtn) confirmBtn.disabled = true;
+            var res = await axios.post("http://localhost:8081/api/admin/users/batch-register", {
+              minStudentId: minStudentId,
+              maxStudentId: maxStudentId
+            });
+            var data = res.data || {};
+            if (!data.success) {
+              alert(data.message || TEXT.batchRegisterFailed);
+              if (confirmBtn) confirmBtn.disabled = false;
+              return;
+            }
+
+            await window.loadUserData();
+            window.closeBatchRegisterModal();
+            alert(
+              TEXT.batchRegisterSuccess + "\n" +
+              "\u65b0\u589e\u8d26\u53f7\uff1a" + (data.createdCount || 0) + "\n" +
+              "\u8df3\u8fc7\u5df2\u5b58\u5728\u8d26\u53f7\uff1a" + (data.skippedCount || 0) + "\n" +
+              (data.defaultPasswordRule || TEXT.defaultPasswordRule)
+            );
+          } catch (err) {
+            console.error("batch register failed", err);
+            alert((err.response && err.response.data && err.response.data.message) || TEXT.batchRegisterFailed);
+            if (confirmBtn) confirmBtn.disabled = false;
+          }
+        };
+
         window.viewUser = function (id) {
           window.location.href = "myself.html?id=" + id;
         };
@@ -1426,6 +1595,9 @@
               >已选择 <span id="selectedCount">0</span> 项</span
             >
           </div>
+          <button class="batch-btn" onclick="openBatchRegisterModal()">
+            &#25209;&#37327;&#27880;&#20876;
+          </button>
           <button class="batch-btn" onclick="batchAction('ban')">
             批量封禁
           </button>
@@ -1495,6 +1667,51 @@
           <span style="color: #666">第 1 页 / 共 1 页</span>
           <button class="pagination-btn" onclick="changePage(1)" disabled>
             下一页
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="batchRegisterModal"
+      class="modal-mask"
+      onclick="if (event.target === this) closeBatchRegisterModal()"
+    >
+      <div class="modal-card">
+        <h3 class="modal-title">&#25209;&#37327;&#27880;&#20876;</h3>
+        <p class="modal-desc">
+          &#35831;&#36755;&#20837;&#35201;&#27880;&#20876;&#30340;&#23398;&#21495;&#33539;&#22260;&#12290;&#31995;&#32479;&#20250;&#33258;&#21160;&#29983;&#25104;&#36134;&#21495;&#65292;&#40664;&#35748;&#23494;&#30721;&#20026;&#23398;&#21495;&#21518;&#20845;&#20301;&#12290;
+        </p>
+        <div class="modal-form">
+          <div class="filter-group">
+            <label for="batchRegisterMinId">&#26368;&#23567;&#23398;&#21495;</label>
+            <input
+              type="text"
+              id="batchRegisterMinId"
+              inputmode="numeric"
+              placeholder="&#35831;&#36755;&#20837;&#26368;&#23567;&#23398;&#21495;"
+            />
+          </div>
+          <div class="filter-group">
+            <label for="batchRegisterMaxId">&#26368;&#22823;&#23398;&#21495;</label>
+            <input
+              type="text"
+              id="batchRegisterMaxId"
+              inputmode="numeric"
+              placeholder="&#35831;&#36755;&#20837;&#26368;&#22823;&#23398;&#21495;"
+            />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn modal-btn-cancel" onclick="closeBatchRegisterModal()">
+            &#21462;&#28040;
+          </button>
+          <button
+            id="batchRegisterConfirmBtn"
+            class="modal-btn modal-btn-confirm"
+            onclick="submitBatchRegister()"
+          >
+            &#30830;&#23450;
           </button>
         </div>
       </div>

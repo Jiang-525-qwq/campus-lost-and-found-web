@@ -18,14 +18,14 @@ DELETE FROM users
 WHERE student_id LIKE 'SEED2026%';
 
 INSERT INTO users (student_id, username, password, phone, email, role, created_at, updated_at, status) VALUES
-('SEED2026001', '测试用户A', '123456', '13800001001', 'seed_a@example.com', 'student', NOW(), NOW(), '正常'),
-('SEED2026002', '测试用户B', '123456', '13800001002', 'seed_b@example.com', 'student', NOW(), NOW(), '正常'),
-('SEED2026003', '测试用户C', '123456', '13800001003', 'seed_c@example.com', 'student', NOW(), NOW(), '正常'),
-('SEED2026004', '测试用户D', '123456', '13800001004', 'seed_d@example.com', 'student', NOW(), NOW(), '正常'),
-('SEED2026005', '测试用户E', '123456', '13800001005', 'seed_e@example.com', 'student', NOW(), NOW(), '正常'),
-('SEED2026006', '测试用户F', '123456', '13800001006', 'seed_f@example.com', 'student', NOW(), NOW(), '正常'),
-('SEED2026007', '测试用户G', '123456', '13800001007', 'seed_g@example.com', 'student', NOW(), NOW(), '正常'),
-('SEED2026008', '测试用户H', '123456', '13800001008', 'seed_h@example.com', 'student', NOW(), NOW(), '正常');
+('SEED2026001', '测试用户A', '123456', '13800001001', 'seed_a@example.com', 'user', NOW(), NOW(), '正常'),
+('SEED2026002', '测试用户B', '123456', '13800001002', 'seed_b@example.com', 'user', NOW(), NOW(), '正常'),
+('SEED2026003', '测试用户C', '123456', '13800001003', 'seed_c@example.com', 'user', NOW(), NOW(), '正常'),
+('SEED2026004', '测试用户D', '123456', '13800001004', 'seed_d@example.com', 'user', NOW(), NOW(), '正常'),
+('SEED2026005', '测试用户E', '123456', '13800001005', 'seed_e@example.com', 'user', NOW(), NOW(), '正常'),
+('SEED2026006', '测试用户F', '123456', '13800001006', 'seed_f@example.com', 'user', NOW(), NOW(), '正常'),
+('SEED2026007', '测试用户G', '123456', '13800001007', 'seed_g@example.com', 'user', NOW(), NOW(), '正常'),
+('SEED2026008', '测试用户H', '123456', '13800001008', 'seed_h@example.com', 'user', NOW(), NOW(), '正常');
 
 INSERT INTO items (user_id, category_id, item_name, description, item_type, lost_found_time, location, image_url, status, created_at, updated_at) VALUES
 ((SELECT user_id FROM users WHERE student_id='SEED2026001'), 1, '校园卡', '[SEED] 蓝色卡套，联系方式: 13800001001', 'lost', '2026-04-16 08:20:00', '图书馆 - 老图书馆', NULL, 1, NOW(), NOW()),

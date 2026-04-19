@@ -23,6 +23,7 @@ import com.campus.model.entity.Report;
 @RequestMapping("/api/reports")
 @CrossOrigin
 public class ReportController {
+    private static final int ITEM_STATUS_CLOSED = 4;
     private static final String STATUS_PENDING = "待处理";
     private static final String STATUS_PROCESSING = "处理中";
     private static final String STATUS_RESOLVED = "已处理";
@@ -67,7 +68,7 @@ public class ReportController {
 
             String nextStatus;
             if ("takedown".equals(action)) {
-                jdbcTemplate.update("UPDATE items SET status = 4 WHERE item_id = ?", report.getItemId());
+                jdbcTemplate.update("UPDATE items SET status = ? WHERE item_id = ?", ITEM_STATUS_CLOSED, report.getItemId());
                 nextStatus = STATUS_RESOLVED;
             } else if ("reject".equals(action)) {
                 nextStatus = STATUS_REJECTED;
