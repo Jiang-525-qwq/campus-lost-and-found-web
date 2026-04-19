@@ -883,6 +883,323 @@
         });
     
     </script>
+    <script>
+      window.auditPageState = {
+        all: [],
+        filtered: [],
+        status: {
+          PENDING: 0,
+          APPROVED: 1,
+          REJECTED: 2,
+        },
+      };
+
+      window.onload = function () {
+        const isLoggedIn = localStorage.getItem("isLoggedIn");
+        const username = localStorage.getItem("username");
+        const isAdmin = localStorage.getItem("isAdmin");
+
+        if (isLoggedIn !== "true" || !username) {
+          alert("请先登录");
+          window.location.href = "logIn.html";
+          return;
+        }
+
+        if (isAdmin !== "true") {
+          alert("您没有管理员权限");
+          window.location.href = "home.html";
+          return;
+        }
+
+        document.getElementById("usernameDisplay").innerHTML =
+          `${username} <span style="color:#ff9800; font-size:12px;">(管理员)</span>`;
+
+        const modal = document.getElementById("detailModal");
+        if (modal) {
+          modal.addEventListener("click", function (e) {
+            if (e.target === modal) {
+              closeModal();
+            }
+          });
+        }
+
+        loadAuditData();
+      };
+
+      function logout() {
+        localStorage.clear();
+        window.location.href = "logIn.html";
+      }
+
+      function getAuditStatusLabel(status) {
+        if (status === 0) return "待审核";
+        if (status === 1) return "已通过";
+        if (status === 2) return "已驳回";
+        return "未知";
+      }
+
+      function getAuditStatusClass(status) {
+        if (status === 0) return "tag-status-pending";
+        if (status === 1) return "tag-status-approved";
+        return "tag-status-rejected";
+      }
+
+      function getAuditTypeLabel(type) {
+        if (type === "lost") return "寻物";
+        if (type === "found") return "招领";
+        return type || "未知";
+      }
+
+      async function loadAuditData() {
+        try {
+          const res = await axios.get("http://localhost:8081/api/admin/audit-list");
+          window.auditPageState.all = res.data || [];
+          updateStats();
+          applyAuditFilters();
+        } catch (err) {
+          console.error("加载审核数据失败", err);
+          document.getElementById("auditTableBody").innerHTML =
+            '<tr><td colspan="8" class="empty-state">数据加载失败，请确认后端已启动</td></tr>';
+        }
+      }
+
+      function updateStats() {
+        const all = window.auditPageState.all;
+        document.getElementById("pendingCount").textContent = all.filter((item) => item.status === 0).length;
+        document.getElementById("approvedCount").textContent = all.filter((item) => item.status === 1).length;
+        document.getElementById("rejectedCount").textContent = all.filter((item) => item.status === 2).length;
+        document.getElementById("totalCount").textContent = all.length;
+      }
+
+      function renderAuditTable() {
+        const tableBody = document.getElementById("auditTableBody");
+        const data = window.auditPageState.filtered;
+        tableBody.innerHTML = data
+          .map((item) => {
+            return `
+              <tr>
+                <td>${item.item_id}</td>
+                <td><span class="tag ${item.item_type === "lost" ? "tag-lost" : "tag-found"}">${getAuditTypeLabel(item.item_type)}</span></td>
+                <td>${item.item_name || "-"}</td>
+                <td>${item.username || "-"}</td>
+                <td>${item.lost_found_time || "-"}</td>
+                <td><span class="tag ${getAuditStatusClass(item.status)}">${getAuditStatusLabel(item.status)}</span></td>
+                <td><button class="btn btn-detail" onclick="viewDetail(${item.item_id})">查看</button></td>
+                <td class="action-buttons">
+                  ${
+                    item.status === 0
+                      ? `<button class="btn btn-pass" onclick="updateItemStatus(${item.item_id}, 'approved')">通过</button>
+                         <button class="btn btn-reject" onclick="updateItemStatus(${item.item_id}, 'rejected')">驳回</button>`
+                      : `<span style="color:#888; font-size:12px;">${getAuditStatusLabel(item.status)}</span>`
+                  }
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      function applyAuditFilters() {
+        const typeFilter = document.getElementById("typeFilter").value;
+        const statusFilter = document.getElementById("statusFilter").value;
+
+        window.auditPageState.filtered = window.auditPageState.all.filter((item) => {
+          const matchesType = typeFilter === "all" || getAuditTypeLabel(item.item_type) === typeFilter;
+          const matchesStatus =
+            statusFilter === "all" || getAuditStatusLabel(item.status) === statusFilter;
+          return matchesType && matchesStatus;
+        });
+
+        renderAuditTable();
+      }
+
+      function filterTable() {
+        applyAuditFilters();
+      }
+
+      async function updateItemStatus(id, newStatus) {
+        const actionText = newStatus === "approved" ? "通过" : "驳回";
+        if (!confirm(`确定要${actionText}这条信息吗？`)) return;
+
+        try {
+          const response = await axios.post("http://localhost:8081/api/admin/update-status", {
+            item_id: id,
+            status: newStatus,
+          });
+          if (response.data.success) {
+            await loadAuditData();
+            alert(`${actionText}成功`);
+          } else {
+            alert(response.data.message || `${actionText}失败`);
+          }
+        } catch (err) {
+          console.error("审核失败", err);
+          alert(`${actionText}失败`);
+        }
+      }
+
+      function viewDetail(id) {
+        const item = window.auditPageState.all.find((entry) => Number(entry.item_id) === Number(id));
+        if (!item) {
+          alert("未找到详情");
+          return;
+        }
+
+        document.getElementById("modalContent").innerHTML = `
+          <div class="modal-header">
+            <h3 class="modal-title">审核详情 - ID: ${item.item_id}</h3>
+            <button class="modal-close" onclick="closeModal()">×</button>
+          </div>
+          <div class="modal-body">
+            <div style="margin-bottom: 15px;"><strong>物品名称：</strong>${item.item_name || "-"}</div>
+            <div style="margin-bottom: 15px;"><strong>信息类型：</strong>${getAuditTypeLabel(item.item_type)}</div>
+            <div style="margin-bottom: 15px;"><strong>发布人：</strong>${item.username || "-"}</div>
+            <div style="margin-bottom: 15px;"><strong>发生时间：</strong>${item.lost_found_time || "-"}</div>
+            <div style="margin-bottom: 15px;"><strong>地点：</strong>${item.location || "-"}</div>
+            <div style="margin-bottom: 15px;"><strong>当前状态：</strong>${getAuditStatusLabel(item.status)}</div>
+            <div style="margin-bottom: 15px;"><strong>描述：</strong><div style="padding:10px; background:#f9f9f9; border-radius:5px; margin-top:5px;">${item.description || "-"}</div></div>
+          </div>
+          <div class="modal-footer">
+            ${
+              item.status === 0
+                ? `<button class="btn btn-pass" onclick="updateItemStatus(${item.item_id}, 'approved'); closeModal();">通过审核</button>
+                   <button class="btn btn-reject" onclick="updateItemStatus(${item.item_id}, 'rejected'); closeModal();">驳回</button>`
+                : ""
+            }
+            <button class="btn btn-detail" onclick="closeModal()">关闭</button>
+          </div>
+        `;
+
+        document.getElementById("detailModal").classList.add("active");
+      }
+
+      function closeModal() {
+        document.getElementById("detailModal").classList.remove("active");
+      }
+    </script>
+    <script>
+      (function () {
+        var LABEL = {
+          pending: "\u5f85\u5ba1\u6838",
+          approved: "\u5df2\u901a\u8fc7",
+          rejected: "\u5df2\u9a73\u56de",
+          lost: "\u5bfb\u7269",
+          found: "\u62db\u9886",
+        };
+        var state = { all: [], filtered: [] };
+
+        function statusLabel(value) {
+          if (value === 0) return LABEL.pending;
+          if (value === 1) return LABEL.approved;
+          if (value === 2) return LABEL.rejected;
+          return "-";
+        }
+
+        function typeLabel(value) {
+          if (value === "lost") return LABEL.lost;
+          if (value === "found") return LABEL.found;
+          return value || "-";
+        }
+
+        function statusClass(value) {
+          if (value === 0) return "tag-status-pending";
+          if (value === 1) return "tag-status-approved";
+          return "tag-status-rejected";
+        }
+
+        function updateStats() {
+          document.getElementById("pendingCount").textContent = state.all.filter(function (item) { return item.status === 0; }).length;
+          document.getElementById("approvedCount").textContent = state.all.filter(function (item) { return item.status === 1; }).length;
+          document.getElementById("rejectedCount").textContent = state.all.filter(function (item) { return item.status === 2; }).length;
+          document.getElementById("totalCount").textContent = state.all.length;
+        }
+
+        function renderTable() {
+          document.getElementById("auditTableBody").innerHTML = state.filtered.map(function (item) {
+            var actions = item.status === 0
+              ? '<button class="btn btn-pass" onclick="updateItemStatus(' + item.item_id + ', \'approved\')">\u901a\u8fc7</button><button class="btn btn-reject" onclick="updateItemStatus(' + item.item_id + ', \'rejected\')">\u9a73\u56de</button>'
+              : '<span style="color:#888; font-size:12px;">' + statusLabel(item.status) + "</span>";
+            return '<tr>' +
+              '<td>' + item.item_id + '</td>' +
+              '<td><span class="tag ' + (item.item_type === "lost" ? "tag-lost" : "tag-found") + '">' + typeLabel(item.item_type) + '</span></td>' +
+              '<td>' + (item.item_name || "-") + '</td>' +
+              '<td>' + (item.username || "-") + '</td>' +
+              '<td>' + (item.lost_found_time || "-") + '</td>' +
+              '<td><span class="tag ' + statusClass(item.status) + '">' + statusLabel(item.status) + '</span></td>' +
+              '<td><button class="btn btn-detail" onclick="viewDetail(' + item.item_id + ')">\u67e5\u770b</button></td>' +
+              '<td class="action-buttons">' + actions + '</td>' +
+              '</tr>';
+          }).join("");
+        }
+
+        function applyFilters() {
+          var typeFilter = document.getElementById("typeFilter").value;
+          var statusFilter = document.getElementById("statusFilter").value;
+          state.filtered = state.all.filter(function (item) {
+            var matchesType = typeFilter === "all" || typeLabel(item.item_type) === typeFilter;
+            var matchesStatus = statusFilter === "all" || statusLabel(item.status) === statusFilter;
+            return matchesType && matchesStatus;
+          });
+          renderTable();
+        }
+
+        window.onload = function () {
+          if (localStorage.getItem("isLoggedIn") !== "true") {
+            window.location.href = "logIn.html";
+            return;
+          }
+          if (localStorage.getItem("isAdmin") !== "true") {
+            window.location.href = "home.html";
+            return;
+          }
+          document.getElementById("usernameDisplay").textContent = localStorage.getItem("username") || "";
+          var modal = document.getElementById("detailModal");
+          if (modal) {
+            modal.addEventListener("click", function (e) {
+              if (e.target === modal) closeModal();
+            });
+          }
+          window.loadAuditData();
+        };
+
+        window.logout = function () {
+          localStorage.clear();
+          window.location.href = "logIn.html";
+        };
+
+        window.loadAuditData = async function () {
+          try {
+            var res = await axios.get("http://localhost:8081/api/admin/audit-list");
+            state.all = res.data || [];
+            updateStats();
+            applyFilters();
+          } catch (err) {
+            document.getElementById("auditTableBody").innerHTML = '<tr><td colspan="8" class="empty-state">load failed</td></tr>';
+          }
+        };
+
+        window.filterTable = function () { applyFilters(); };
+
+        window.updateItemStatus = async function (id, newStatus) {
+          await axios.post("http://localhost:8081/api/admin/update-status", { item_id: id, status: newStatus });
+          await window.loadAuditData();
+        };
+
+        window.viewDetail = function (id) {
+          var item = state.all.find(function (entry) { return Number(entry.item_id) === Number(id); });
+          if (!item) return;
+          document.getElementById("modalContent").innerHTML =
+            '<div class="modal-header"><h3 class="modal-title">ID: ' + item.item_id + '</h3><button class="modal-close" onclick="closeModal()">&times;</button></div>' +
+            '<div class="modal-body"><div><strong>' + (item.item_name || "-") + '</strong></div><div>' + (item.description || "-") + '</div></div>' +
+            '<div class="modal-footer"><button class="btn btn-detail" onclick="closeModal()">Close</button></div>';
+          document.getElementById("detailModal").classList.add("active");
+        };
+
+        window.closeModal = function () {
+          document.getElementById("detailModal").classList.remove("active");
+        };
+      })();
+    </script>
   </head>
   <body>
     <div class="title">

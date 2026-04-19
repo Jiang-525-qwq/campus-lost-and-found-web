@@ -251,5 +251,385 @@
         loadItems();
       };
     </script>
+    <script type="text/plain" data-disabled="legacy-script-0">
+      (() => {
+        const LOCATION_MAP = {
+          "\u56fe\u4e66\u9986": ["\u8001\u56fe\u4e66\u9986", "\u6570\u5b57\u56fe\u4e66\u9986", "\u6587\u5cf0\u56fe\u4e66\u9986"],
+          "\u6559\u5b66\u697c": ["\u4e00\u6559", "\u4e8c\u6559", "\u4e09\u6559", "\u56db\u6559", "\u4e94\u6559", "\u516d\u6559", "\u4e03\u6559", "\u516b\u6559", "\u4e5d\u6559"],
+          "\u98df\u5802": ["\u4e2d\u5fc3\u98df\u5802", "\u5174\u4e1a\u82d1\u98df\u5802", "\u6ee8\u6e56\u9910\u5385", "\u6a31\u82b1\u98df\u5802", "\u5343\u559c\u9e64", "\u8309\u83ab\u98df\u5802"],
+          "\u5bbf\u820d\u533a": ["\u5b81\u9759", "\u660e\u7406", "\u660e\u5fd7", "\u5174\u4e1a", "\u77e5\u884c"],
+          "\u8fd0\u52a8\u573a": ["\u98ce\u534e\u64cd\u573a", "\u592a\u6781\u64cd\u573a", "\u706f\u5149\u7bee\u7403\u573a", "\u7f51\u7403\u573a", "\u5357\u7fbd\u6bdb\u7403\u573a"],
+          "\u5176\u4ed6": ["\u5176\u4ed6"],
+        };
+
+        function ensureSubLocationFilter() {
+          const filterGroup = document.querySelector(".filter-group");
+          const locationFilter = document.getElementById("locationFilter");
+          if (!filterGroup || !locationFilter) return null;
+
+          let subFilter = document.getElementById("subLocationFilter");
+          if (!subFilter) {
+            subFilter = document.createElement("select");
+            subFilter.id = "subLocationFilter";
+            filterGroup.insertBefore(subFilter, document.getElementById("timeFilter"));
+          }
+          return subFilter;
+        }
+
+        function populateMainLocations() {
+          const locationFilter = document.getElementById("locationFilter");
+          if (!locationFilter) return;
+          locationFilter.innerHTML =
+            '<option value="all">\u6240\u6709\u533a\u57df</option>' +
+            Object.keys(LOCATION_MAP)
+              .map((key) => `<option value="${key}">${key}</option>`)
+              .join("");
+        }
+
+        function populateSubLocations() {
+          const locationFilter = document.getElementById("locationFilter");
+          const subFilter = ensureSubLocationFilter();
+          if (!locationFilter || !subFilter) return;
+
+          const selectedMain = locationFilter.value;
+          const subLocations = selectedMain !== "all" ? (LOCATION_MAP[selectedMain] || []) : [];
+          subFilter.innerHTML =
+            '<option value="all">\u6240\u6709\u8be6\u7ec6\u5730\u70b9</option>' +
+            subLocations
+              .map((name) => `<option value="${name}">${name}</option>`)
+              .join("");
+          subFilter.disabled = selectedMain === "all";
+        }
+
+        function cleanDescription(description) {
+          return String(description || "").replace(/\s*[\(（]联系方式[:：][^)）]+[\)）]\s*$/, "").trim() || "\u6682\u65e0\u63cf\u8ff0";
+        }
+
+        function setupFilters() {
+          const searchInput = document.getElementById("searchInput");
+          const locationFilter = document.getElementById("locationFilter");
+          const subFilter = ensureSubLocationFilter();
+          const timeFilter = document.getElementById("timeFilter");
+
+          populateMainLocations();
+          populateSubLocations();
+
+          if (searchInput) {
+            searchInput.addEventListener("keypress", (e) => {
+              if (e.key === "Enter") window.handleSearch();
+            });
+          }
+          if (locationFilter) {
+            locationFilter.addEventListener("change", () => {
+              populateSubLocations();
+              window.loadItems(document.getElementById("searchInput").value);
+            });
+          }
+          if (subFilter) {
+            subFilter.addEventListener("change", () => window.loadItems(document.getElementById("searchInput").value));
+          }
+          if (timeFilter) {
+            timeFilter.addEventListener("change", () => window.loadItems(document.getElementById("searchInput").value));
+          }
+          document.getElementById("typeFilter").addEventListener("click", (e) => {
+            if (!e.target.classList.contains("type-tag")) return;
+            document.querySelectorAll(".type-tag").forEach((tag) => tag.classList.remove("active"));
+            e.target.classList.add("active");
+            window.loadItems(document.getElementById("searchInput").value);
+          });
+        }
+
+        window.checkAuth = function () {
+          const username = localStorage.getItem("username");
+          const isAdmin = localStorage.getItem("isAdmin");
+          document.getElementById("usernameDisplay").innerText = username || "\u6e38\u5ba2";
+          const adminBtn = document.getElementById("adminBtn");
+          if (adminBtn) {
+            adminBtn.style.display = isAdmin === "true" ? "block" : "none";
+          }
+        };
+
+        window.handleSearch = function () {
+          window.loadItems(document.getElementById("searchInput").value);
+        };
+
+        window.loadItems = async function (keyword = "") {
+          const listContainer = document.getElementById("item-list");
+          try {
+            let url = "http://localhost:8081/api/items";
+            if (keyword) {
+              url += `?keyword=${encodeURIComponent(keyword)}`;
+            }
+            const res = await axios.get(url);
+            const items = res.data || [];
+            const activeType = document.querySelector(".type-tag.active").dataset.type;
+            const selectedLocation = document.getElementById("locationFilter").value;
+            const selectedSubLocation = document.getElementById("subLocationFilter").value;
+            const selectedTime = document.getElementById("timeFilter").value;
+
+            const filtered = items.filter((item) => {
+              if (activeType !== "all" && item.item_type !== activeType) return false;
+              if (selectedLocation !== "all" && (!item.location || !item.location.includes(selectedLocation))) return false;
+              if (selectedLocation !== "all" && selectedSubLocation !== "all" && (!item.location || !item.location.includes(selectedSubLocation))) return false;
+              if (selectedTime !== "all") {
+                const itemDate = new Date(item.lost_found_time);
+                const diffDays = (new Date() - itemDate) / (1000 * 60 * 60 * 24);
+                if (selectedTime === "today" && diffDays > 1) return false;
+                if (selectedTime === "three_days" && diffDays > 3) return false;
+                if (selectedTime === "week" && diffDays > 7) return false;
+              }
+              return true;
+            });
+
+            if (!filtered.length) {
+              listContainer.innerHTML = '<p style="text-align:center; padding:50px;">\u672a\u627e\u5230\u76f8\u5173\u5e16\u5b50</p>';
+              return;
+            }
+
+            listContainer.innerHTML = filtered
+              .map((item) => `
+                <div class="item-card" onclick="location.href='detail.html?id=${item.item_id}'">
+                  <div class="item-header">
+                    <h3>${item.item_name}</h3>
+                    <span class="tag ${item.item_type === "lost" ? "tag-lost" : "tag-found"}">
+                      ${item.item_type === "lost" ? "\u5bfb\u7269" : "\u62db\u9886"}
+                    </span>
+                  </div>
+                  <div class="item-meta">地点：${item.location || "-"} | 时间：${item.lost_found_time || "-"}</div>
+                  <div class="item-desc">${cleanDescription(item.description)}</div>
+                </div>
+              `)
+              .join("");
+          } catch (err) {
+            console.error("load items failed", err);
+            listContainer.innerHTML = '<p style="text-align:center; color:red;">\u540e\u7aef\u63a5\u53e3\u5f02\u5e38</p>';
+          }
+        };
+
+        window.logout = function () {
+          localStorage.clear();
+          window.location.href = "logIn.html";
+        };
+
+        window.onload = function () {
+          window.checkAuth();
+          setupFilters();
+          window.loadItems();
+        };
+      })();
+    </script>
+    <script type="text/plain" data-disabled="legacy-script-1">
+      (() => {
+        const PAGE_STATE = { currentPage: 1, pageSize: 10, filteredItems: [] };
+        const LOCATION_MAP = {
+          "\u56fe\u4e66\u9986": ["\u8001\u56fe\u4e66\u9986", "\u6570\u5b57\u56fe\u4e66\u9986", "\u6587\u5cf0\u56fe\u4e66\u9986"],
+          "\u6559\u5b66\u697c": ["\u4e00\u6559", "\u4e8c\u6559", "\u4e09\u6559", "\u56db\u6559", "\u4e94\u6559", "\u516d\u6559", "\u4e03\u6559", "\u516b\u6559", "\u4e5d\u6559"],
+          "\u98df\u5802": ["\u4e2d\u5fc3\u98df\u5802", "\u5174\u4e1a\u82d1\u98df\u5802", "\u6ee8\u6e56\u9910\u5385", "\u6a31\u82b1\u98df\u5802", "\u5343\u559c\u9e64", "\u8309\u83ab\u98df\u5802"],
+          "\u5bbf\u820d\u533a": ["\u5b81\u9759", "\u660e\u7406", "\u660e\u5fd7", "\u5174\u4e1a", "\u77e5\u884c"],
+          "\u8fd0\u52a8\u573a": ["\u98ce\u534e\u64cd\u573a", "\u592a\u6781\u64cd\u573a", "\u706f\u5149\u7bee\u7403\u573a", "\u7f51\u7403\u573a", "\u5357\u7fbd\u6bdb\u7403\u573a"],
+          "\u5176\u4ed6": ["\u5176\u4ed6"],
+        };
+
+        function ensureSubFilter() {
+          let subFilter = document.getElementById("subLocationFilter");
+          if (subFilter) return subFilter;
+          const timeFilter = document.getElementById("timeFilter");
+          if (!timeFilter || !timeFilter.parentNode) return null;
+          subFilter = document.createElement("select");
+          subFilter.id = "subLocationFilter";
+          timeFilter.parentNode.insertBefore(subFilter, timeFilter);
+          return subFilter;
+        }
+
+        function initLocationFilters() {
+          const locationFilter = document.getElementById("locationFilter");
+          const subFilter = ensureSubFilter();
+          if (!locationFilter || !subFilter) return;
+
+          locationFilter.innerHTML =
+            '<option value="all">\u6240\u6709\u533a\u57df</option>' +
+            Object.keys(LOCATION_MAP)
+              .map((name) => `<option value="${name}">${name}</option>`)
+              .join("");
+
+          function fillSubLocations() {
+            const selected = locationFilter.value;
+            const options = selected === "all" ? [] : (LOCATION_MAP[selected] || []);
+            subFilter.innerHTML =
+              '<option value="all">\u6240\u6709\u8be6\u7ec6\u5730\u70b9</option>' +
+              options.map((name) => `<option value="${name}">${name}</option>`).join("");
+            subFilter.disabled = selected === "all";
+          }
+
+          fillSubLocations();
+          locationFilter.onchange = function () {
+            fillSubLocations();
+            window.loadItems((document.getElementById("searchInput") || {}).value || "");
+          };
+          subFilter.onchange = function () {
+            window.loadItems((document.getElementById("searchInput") || {}).value || "");
+          };
+        }
+
+        function cleanDescription(description) {
+          return String(description || "")
+            .replace(/\s*[\(\uff08]\u8054\u7cfb\u65b9\u5f0f[:\uff1a][^\)\uff09]+[\)\uff09]\s*$/, "")
+            .trim() || "\u6682\u65e0\u63cf\u8ff0";
+        }
+
+        function ensurePagination() {
+          let pagination = document.getElementById("homePagination");
+          if (pagination) return pagination;
+          pagination = document.createElement("div");
+          pagination.id = "homePagination";
+          pagination.style.display = "flex";
+          pagination.style.justifyContent = "center";
+          pagination.style.alignItems = "center";
+          pagination.style.gap = "12px";
+          pagination.style.marginTop = "24px";
+          pagination.innerHTML =
+            '<button id="homePrevPage" style="padding:8px 16px;border:none;border-radius:8px;background:#549687;color:#fff;cursor:pointer;">上一页</button>' +
+            '<span id="homePageInfo" style="color:#555;"></span>' +
+            '<button id="homeNextPage" style="padding:8px 16px;border:none;border-radius:8px;background:#549687;color:#fff;cursor:pointer;">下一页</button>';
+          document.getElementById("item-list").insertAdjacentElement("afterend", pagination);
+          document.getElementById("homePrevPage").onclick = function () {
+            if (PAGE_STATE.currentPage > 1) {
+              PAGE_STATE.currentPage -= 1;
+              renderPagedItems();
+            }
+          };
+          document.getElementById("homeNextPage").onclick = function () {
+            const totalPages = Math.max(1, Math.ceil(PAGE_STATE.filteredItems.length / PAGE_STATE.pageSize));
+            if (PAGE_STATE.currentPage < totalPages) {
+              PAGE_STATE.currentPage += 1;
+              renderPagedItems();
+            }
+          };
+          return pagination;
+        }
+
+        function renderPagedItems() {
+          const listContainer = document.getElementById("item-list");
+          const pagination = ensurePagination();
+          const totalPages = Math.max(1, Math.ceil(PAGE_STATE.filteredItems.length / PAGE_STATE.pageSize));
+          PAGE_STATE.currentPage = Math.min(Math.max(PAGE_STATE.currentPage, 1), totalPages);
+          const start = (PAGE_STATE.currentPage - 1) * PAGE_STATE.pageSize;
+          const pageItems = PAGE_STATE.filteredItems.slice(start, start + PAGE_STATE.pageSize);
+
+          if (!PAGE_STATE.filteredItems.length) {
+            listContainer.innerHTML = '<p style="text-align:center; padding:50px;">\u672a\u627e\u5230\u76f8\u5173\u5e16\u5b50</p>';
+            pagination.style.display = "none";
+            return;
+          }
+
+          pagination.style.display = "flex";
+          document.getElementById("homePageInfo").textContent = `第 ${PAGE_STATE.currentPage} 页 / 共 ${totalPages} 页`;
+          document.getElementById("homePrevPage").disabled = PAGE_STATE.currentPage <= 1;
+          document.getElementById("homeNextPage").disabled = PAGE_STATE.currentPage >= totalPages;
+          document.getElementById("homePrevPage").style.opacity = PAGE_STATE.currentPage <= 1 ? "0.5" : "1";
+          document.getElementById("homeNextPage").style.opacity = PAGE_STATE.currentPage >= totalPages ? "0.5" : "1";
+
+          listContainer.innerHTML = pageItems.map((item) => `
+            <div class="item-card" onclick="location.href='detail.html?id=${item.item_id}'">
+              <div class="item-header">
+                <h3>${item.item_name}</h3>
+                <span class="tag ${item.item_type === "lost" ? "tag-lost" : "tag-found"}">
+                  ${item.item_type === "lost" ? "\u5bfb\u7269" : "\u62db\u9886"}
+                </span>
+              </div>
+              <div class="item-meta">地点：${item.location || "-"} | 时间：${item.lost_found_time || "-"}</div>
+              <div class="item-desc">${cleanDescription(item.description)}</div>
+            </div>
+          `).join("");
+        }
+
+        window.loadItems = async function (keyword = "") {
+          const listContainer = document.getElementById("item-list");
+          try {
+            let url = "http://localhost:8081/api/items";
+            if (keyword) {
+              url += `?keyword=${encodeURIComponent(keyword)}`;
+            }
+            const res = await axios.get(url);
+            const items = res.data || [];
+            const activeType = (document.querySelector(".type-tag.active") || {}).dataset?.type || "all";
+            const selectedLocation = (document.getElementById("locationFilter") || {}).value || "all";
+            const selectedSubLocation = (document.getElementById("subLocationFilter") || {}).value || "all";
+            const selectedTime = (document.getElementById("timeFilter") || {}).value || "all";
+
+            PAGE_STATE.filteredItems = items.filter((item) => {
+              if (activeType !== "all" && item.item_type !== activeType) return false;
+              if (selectedLocation !== "all" && (!item.location || !item.location.includes(selectedLocation))) return false;
+              if (selectedSubLocation !== "all" && (!item.location || !item.location.includes(selectedSubLocation))) return false;
+              if (selectedTime !== "all") {
+                const diffDays = (new Date() - new Date(item.lost_found_time)) / (1000 * 60 * 60 * 24);
+                if (selectedTime === "today" && diffDays > 1) return false;
+                if (selectedTime === "three_days" && diffDays > 3) return false;
+                if (selectedTime === "week" && diffDays > 7) return false;
+              }
+              return true;
+            });
+            PAGE_STATE.currentPage = 1;
+            renderPagedItems();
+          } catch (err) {
+            console.error("home load failed", err);
+            listContainer.innerHTML = '<p style="text-align:center; color:red;">\u52a0\u8f7d\u5931\u8d25</p>';
+          }
+        };
+
+        window.handleSearch = function () {
+          window.loadItems((document.getElementById("searchInput") || {}).value || "");
+        };
+
+        window.checkAuth = async function () {
+          const storedUsername = localStorage.getItem("username");
+          const userId = localStorage.getItem("userId");
+          const isAdmin = localStorage.getItem("isAdmin");
+          let username = storedUsername || "\u6e38\u5ba2";
+          if (userId) {
+            try {
+              const res = await axios.get(`http://localhost:8081/api/users/${userId}`);
+              if (res.data && res.data.username) {
+                username = res.data.username;
+                localStorage.setItem("username", username);
+              }
+            } catch (err) {}
+          }
+          document.getElementById("usernameDisplay").innerText = username;
+          const adminBtn = document.getElementById("adminBtn");
+          if (adminBtn) adminBtn.style.display = isAdmin === "true" ? "block" : "none";
+        };
+
+        window.logout = function () {
+          localStorage.clear();
+          window.location.href = "logIn.html";
+        };
+
+        window.checkAuth();
+        initLocationFilters();
+        const typeFilter = document.getElementById("typeFilter");
+        if (typeFilter) {
+          typeFilter.onclick = function (e) {
+            if (!e.target.classList.contains("type-tag")) return;
+            document.querySelectorAll(".type-tag").forEach((tag) => tag.classList.remove("active"));
+            e.target.classList.add("active");
+            window.loadItems((document.getElementById("searchInput") || {}).value || "");
+          };
+        }
+        const searchInput = document.getElementById("searchInput");
+        if (searchInput) {
+          searchInput.onkeypress = function (e) {
+            if (e.key === "Enter") window.handleSearch();
+          };
+        }
+        const timeFilter = document.getElementById("timeFilter");
+        if (timeFilter) {
+          timeFilter.onchange = function () {
+            window.loadItems((document.getElementById("searchInput") || {}).value || "");
+          };
+        }
+        window.loadItems();
+      })();
+    </script>
   </body>
 </html>

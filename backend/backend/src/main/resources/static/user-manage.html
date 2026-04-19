@@ -895,6 +895,483 @@
               }
             });
     </script>
+    <script>
+      window.userAdminState = {
+        all: [],
+        filtered: [],
+        currentPage: 1,
+        pageSize: 10,
+      };
+
+      window.onload = function () {
+        const isLoggedIn = localStorage.getItem("isLoggedIn");
+        const username = localStorage.getItem("username");
+        const isAdmin = localStorage.getItem("isAdmin");
+
+        if (isLoggedIn !== "true" || !username) {
+          alert("请先登录");
+          window.location.href = "logIn.html";
+          return;
+        }
+
+        if (isAdmin !== "true") {
+          alert("您没有管理员权限");
+          window.location.href = "home.html";
+          return;
+        }
+
+        document.getElementById("usernameDisplay").innerHTML =
+          `${username} <span style="color:#ff9800; font-size:12px;">(管理员)</span>`;
+
+        const searchInput = document.getElementById("searchInput");
+        if (searchInput) {
+          searchInput.addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+              searchUsers();
+            }
+          });
+        }
+
+        loadUserData();
+      };
+
+      function logout() {
+        localStorage.clear();
+        window.location.href = "logIn.html";
+      }
+
+      async function loadUserData() {
+        try {
+          const res = await axios.get("http://localhost:8081/api/admin/users/list");
+          window.userAdminState.all = res.data || [];
+          updateUserStats();
+          applyUserFilters();
+        } catch (err) {
+          console.error("加载用户失败", err);
+          document.getElementById("userTableBody").innerHTML =
+            '<tr><td colspan="7" class="empty-state">数据加载失败，请确认后端已启动</td></tr>';
+        }
+      }
+
+      function updateUserStats() {
+        const all = window.userAdminState.all;
+        document.getElementById("activeCount").textContent = all.filter((user) => user.status === "正常").length;
+        document.getElementById("bannedCount").textContent = all.filter((user) => user.status === "已封禁").length;
+        document.getElementById("adminCount").textContent = all.filter((user) => user.role === "admin").length;
+        document.getElementById("totalCount").textContent = all.length;
+      }
+
+      function getUserStatusClass(status) {
+        if (status === "正常") return "tag-active";
+        if (status === "已封禁") return "tag-banned";
+        return "";
+      }
+
+      function renderUserTable() {
+        const state = window.userAdminState;
+        const tableBody = document.getElementById("userTableBody");
+        const noResults = document.getElementById("noResultsMessage");
+        const totalPages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+        state.currentPage = Math.min(Math.max(state.currentPage, 1), totalPages);
+
+        const start = (state.currentPage - 1) * state.pageSize;
+        const pageData = state.filtered.slice(start, start + state.pageSize);
+
+        if (pageData.length === 0) {
+          tableBody.innerHTML = '<tr><td colspan="7" class="empty-state">没有匹配的用户</td></tr>';
+          noResults.style.display = state.filtered.length === 0 ? "block" : "none";
+          updateUserPagination(totalPages);
+          updateSelectedCount();
+          return;
+        }
+
+        noResults.style.display = "none";
+        tableBody.innerHTML = pageData
+          .map((user) => {
+            const isAdmin = user.role === "admin";
+            const nextAction = user.status === "正常" ? "ban" : "enable";
+            const actionLabel = user.status === "正常" ? "封禁" : "解封";
+            return `
+              <tr>
+                <td>
+                  <input type="checkbox" class="row-checkbox" data-id="${user.id}" onchange="updateSelectedCount()">
+                  ${user.id}
+                </td>
+                <td>${user.studentId || "-"}</td>
+                <td>${user.username || "-"}</td>
+                <td>${user.phone || "未填写"}</td>
+                <td>${user.registerTime || "-"}</td>
+                <td>
+                  <span class="tag ${getUserStatusClass(user.status)}">${user.status || "-"}</span>
+                  ${isAdmin ? ' <span class="tag tag-admin">管理员</span>' : ""}
+                </td>
+                <td class="action-buttons">
+                  <button class="btn btn-view" onclick="viewUser(${user.id})">查看</button>
+                  ${
+                    !isAdmin
+                      ? `<button class="btn ${user.status === "正常" ? "btn-ban" : "btn-enable"}" onclick="toggleUserStatus(${user.id}, '${nextAction}')">${actionLabel}</button>
+                         <button class="btn btn-delete" onclick="deleteUser(${user.id})">删除</button>`
+                      : '<span style="color:#999; font-size:12px;">不可操作</span>'
+                  }
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
+
+        document.getElementById("selectAll").checked = false;
+        updateSelectedCount();
+        updateUserPagination(totalPages);
+      }
+
+      function updateUserPagination(totalPages) {
+        const buttons = document.querySelectorAll(".pagination-btn");
+        const label = document.querySelector(".pagination span");
+        if (label) {
+          label.textContent = `第 ${window.userAdminState.currentPage} 页 / 共 ${totalPages} 页`;
+        }
+        if (buttons.length >= 2) {
+          buttons[0].disabled = window.userAdminState.currentPage <= 1;
+          buttons[1].disabled = window.userAdminState.currentPage >= totalPages;
+        }
+      }
+
+      function applyUserFilters() {
+        const keyword = document.getElementById("searchInput").value.trim().toLowerCase();
+        const statusFilter = document.getElementById("statusFilter").value;
+        const roleFilter = document.getElementById("roleFilter").value;
+
+        window.userAdminState.filtered = window.userAdminState.all.filter((user) => {
+          const matchesKeyword =
+            !keyword ||
+            String(user.studentId || "").toLowerCase().includes(keyword) ||
+            String(user.username || "").toLowerCase().includes(keyword);
+          const matchesStatus =
+            statusFilter === "all" ||
+            (statusFilter === "active" && user.status === "正常") ||
+            (statusFilter === "banned" && user.status === "已封禁");
+          const matchesRole =
+            roleFilter === "all" ||
+            (roleFilter === "admin" && user.role === "admin") ||
+            (roleFilter === "user" && user.role !== "admin");
+          return matchesKeyword && matchesStatus && matchesRole;
+        });
+
+        window.userAdminState.currentPage = 1;
+        renderUserTable();
+      }
+
+      function searchUsers() {
+        applyUserFilters();
+      }
+
+      function viewUser(id) {
+        const user = window.userAdminState.all.find((entry) => Number(entry.id) === Number(id));
+        if (!user) {
+          alert("未找到用户");
+          return;
+        }
+
+        alert(
+          `用户ID：${user.id}\n` +
+            `学号：${user.studentId || "-"}\n` +
+            `用户名：${user.username || "-"}\n` +
+            `邮箱：${user.email || "-"}\n` +
+            `手机号：${user.phone || "-"}\n` +
+            `注册时间：${user.registerTime || "-"}\n` +
+            `状态：${user.status || "-"}\n` +
+            `角色：${user.role || "-"}\n` +
+            `帖子数：${user.postCount || 0}`,
+        );
+      }
+
+      async function toggleUserStatus(id, action) {
+        const status = action === "ban" ? "已封禁" : "正常";
+        const actionText = action === "ban" ? "封禁" : "解封";
+        if (!confirm(`确定要${actionText}该用户吗？`)) return;
+
+        try {
+          const res = await axios.post("http://localhost:8081/api/admin/users/update-status", {
+            id,
+            status,
+          });
+          if (res.data.success) {
+            await loadUserData();
+            alert(`${actionText}成功`);
+          } else {
+            alert(res.data.message || `${actionText}失败`);
+          }
+        } catch (err) {
+          console.error(`${actionText}失败`, err);
+          alert(`${actionText}失败`);
+        }
+      }
+
+      async function deleteUser(id) {
+        const user = window.userAdminState.all.find((entry) => Number(entry.id) === Number(id));
+        if (!user) return;
+        if (!confirm(`确定要删除用户 ${user.username || id} 吗？此操作不可恢复。`)) return;
+
+        try {
+          const res = await axios.post("http://localhost:8081/api/admin/users/delete", { id });
+          if (res.data.success) {
+            await loadUserData();
+            alert("删除成功");
+          } else {
+            alert(res.data.message || "删除失败");
+          }
+        } catch (err) {
+          console.error("删除失败", err);
+          alert("删除失败");
+        }
+      }
+
+      function updateSelectedCount() {
+        document.getElementById("selectedCount").textContent =
+          document.querySelectorAll(".row-checkbox:checked").length;
+      }
+
+      function selectAllRows() {
+        const checked = document.getElementById("selectAll").checked;
+        document.querySelectorAll(".row-checkbox").forEach((checkbox) => {
+          checkbox.checked = checked;
+        });
+        updateSelectedCount();
+      }
+
+      async function batchAction(action) {
+        const selectedIds = Array.from(document.querySelectorAll(".row-checkbox:checked")).map((cb) =>
+          Number(cb.getAttribute("data-id")),
+        );
+
+        if (selectedIds.length === 0) {
+          alert("请先选择要操作的用户");
+          return;
+        }
+
+        const actionText = action === "ban" ? "封禁" : action === "enable" ? "解封" : "删除";
+        if (!confirm(`确定要批量${actionText}选中的 ${selectedIds.length} 个用户吗？`)) return;
+
+        try {
+          for (const id of selectedIds) {
+            if (action === "delete") {
+              await axios.post("http://localhost:8081/api/admin/users/delete", { id });
+            } else {
+              await axios.post("http://localhost:8081/api/admin/users/update-status", {
+                id,
+                status: action === "ban" ? "已封禁" : "正常",
+              });
+            }
+          }
+          await loadUserData();
+          alert(`批量${actionText}成功`);
+        } catch (err) {
+          console.error("批量操作失败", err);
+          alert(`批量${actionText}失败`);
+        }
+      }
+
+      function changePage(step) {
+        const state = window.userAdminState;
+        const totalPages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+        const nextPage = state.currentPage + step;
+        if (nextPage < 1 || nextPage > totalPages) return;
+        state.currentPage = nextPage;
+        renderUserTable();
+      }
+    </script>
+    <script>
+      (function () {
+        var ACTIVE = "\u6b63\u5e38";
+        var BANNED = "\u5df2\u5c01\u7981";
+        var TEXT = {
+          login: "\u8bf7\u5148\u767b\u5f55",
+          noAdmin: "\u60a8\u6ca1\u6709\u7ba1\u7406\u5458\u6743\u9650",
+          adminTag: "\u7ba1\u7406\u5458",
+          loadFailed: "\u6570\u636e\u52a0\u8f7d\u5931\u8d25\uff0c\u8bf7\u786e\u8ba4\u540e\u7aef\u5df2\u542f\u52a8",
+          noMatch: "\u6ca1\u6709\u5339\u914d\u7684\u7528\u6237",
+          selectUser: "\u8bf7\u5148\u9009\u62e9\u8981\u64cd\u4f5c\u7684\u7528\u6237",
+          currentPage: "\u7b2c",
+          page: "\u9875",
+          totalPage: "\u5171",
+        };
+        var state = { all: [], filtered: [], currentPage: 1, pageSize: 10 };
+
+        function updateStats() {
+          document.getElementById("activeCount").textContent = state.all.filter(function (user) { return user.status === ACTIVE; }).length;
+          document.getElementById("bannedCount").textContent = state.all.filter(function (user) { return user.status === BANNED; }).length;
+          document.getElementById("adminCount").textContent = state.all.filter(function (user) { return user.role === "admin"; }).length;
+          document.getElementById("totalCount").textContent = state.all.length;
+        }
+
+        function statusClass(status) {
+          if (status === ACTIVE) return "tag-active";
+          if (status === BANNED) return "tag-banned";
+          return "";
+        }
+
+        function updatePagination(totalPages) {
+          var buttons = document.querySelectorAll(".pagination-btn");
+          var label = document.querySelector(".pagination span");
+          if (label) {
+            label.textContent = TEXT.currentPage + " " + state.currentPage + " " + TEXT.page + " / " + TEXT.totalPage + " " + totalPages + " " + TEXT.page;
+          }
+          if (buttons.length >= 2) {
+            buttons[0].disabled = state.currentPage <= 1;
+            buttons[1].disabled = state.currentPage >= totalPages;
+          }
+        }
+
+        function renderTable() {
+          var tableBody = document.getElementById("userTableBody");
+          var noResults = document.getElementById("noResultsMessage");
+          var totalPages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+          state.currentPage = Math.min(Math.max(state.currentPage, 1), totalPages);
+          var start = (state.currentPage - 1) * state.pageSize;
+          var pageData = state.filtered.slice(start, start + state.pageSize);
+
+          if (!pageData.length) {
+            tableBody.innerHTML = '<tr><td colspan="7" class="empty-state">' + TEXT.noMatch + "</td></tr>";
+            noResults.style.display = state.filtered.length === 0 ? "block" : "none";
+            updatePagination(totalPages);
+            window.updateSelectedCount();
+            return;
+          }
+
+          noResults.style.display = "none";
+          tableBody.innerHTML = pageData.map(function (user) {
+            var isAdmin = user.role === "admin";
+            var nextAction = user.status === ACTIVE ? "ban" : "enable";
+            var actionLabel = user.status === ACTIVE ? "\u5c01\u7981" : "\u89e3\u5c01";
+            return '<tr>' +
+              '<td><input type="checkbox" class="row-checkbox" data-id="' + user.id + '" onchange="updateSelectedCount()">' + user.id + '</td>' +
+              '<td>' + (user.studentId || "-") + '</td>' +
+              '<td>' + (user.username || "-") + '</td>' +
+              '<td>' + (user.phone || "\u672a\u586b\u5199") + '</td>' +
+              '<td>' + (user.registerTime || "-") + '</td>' +
+              '<td><span class="tag ' + statusClass(user.status) + '">' + (user.status || "-") + '</span>' +
+              (isAdmin ? ' <span class="tag tag-admin">admin</span>' : "") + '</td>' +
+              '<td class="action-buttons">' +
+              '<button class="btn btn-view" onclick="viewUser(' + user.id + ')">\u67e5\u770b</button>' +
+              (!isAdmin ? '<button class="btn ' + (user.status === ACTIVE ? "btn-ban" : "btn-enable") + '" onclick="toggleUserStatus(' + user.id + ', \'' + nextAction + '\')">' + actionLabel + '</button><button class="btn btn-delete" onclick="deleteUser(' + user.id + ')">\u5220\u9664</button>' : '<span style="color:#999; font-size:12px;">-</span>') +
+              '</td></tr>';
+          }).join("");
+          document.getElementById("selectAll").checked = false;
+          window.updateSelectedCount();
+          updatePagination(totalPages);
+        }
+
+        function applyFilters() {
+          var keyword = document.getElementById("searchInput").value.trim().toLowerCase();
+          var statusFilter = document.getElementById("statusFilter").value;
+          var roleFilter = document.getElementById("roleFilter").value;
+          state.filtered = state.all.filter(function (user) {
+            var matchesKeyword = !keyword || String(user.studentId || "").toLowerCase().includes(keyword) || String(user.username || "").toLowerCase().includes(keyword);
+            var matchesStatus = statusFilter === "all" || (statusFilter === "active" && user.status === ACTIVE) || (statusFilter === "banned" && user.status === BANNED);
+            var matchesRole = roleFilter === "all" || (roleFilter === "admin" && user.role === "admin") || (roleFilter === "user" && user.role !== "admin");
+            return matchesKeyword && matchesStatus && matchesRole;
+          });
+          state.currentPage = 1;
+          renderTable();
+        }
+
+        window.onload = function () {
+          var isLoggedIn = localStorage.getItem("isLoggedIn");
+          var username = localStorage.getItem("username");
+          var isAdmin = localStorage.getItem("isAdmin");
+          if (isLoggedIn !== "true" || !username) {
+            alert(TEXT.login);
+            window.location.href = "logIn.html";
+            return;
+          }
+          if (isAdmin !== "true") {
+            alert(TEXT.noAdmin);
+            window.location.href = "home.html";
+            return;
+          }
+          document.getElementById("usernameDisplay").innerHTML = username + ' <span style="color:#ff9800; font-size:12px;">(' + TEXT.adminTag + ")</span>";
+          var searchInput = document.getElementById("searchInput");
+          if (searchInput) searchInput.addEventListener("keypress", function (e) { if (e.key === "Enter") window.searchUsers(); });
+          window.loadUserData();
+        };
+
+        window.logout = function () {
+          localStorage.clear();
+          window.location.href = "logIn.html";
+        };
+
+        window.loadUserData = async function () {
+          try {
+            var res = await axios.get("http://localhost:8081/api/admin/users/list");
+            state.all = res.data || [];
+            updateStats();
+            applyFilters();
+          } catch (err) {
+            console.error("user load failed", err);
+            document.getElementById("userTableBody").innerHTML = '<tr><td colspan="7" class="empty-state">' + TEXT.loadFailed + "</td></tr>";
+          }
+        };
+
+        window.searchUsers = function () { applyFilters(); };
+
+        window.viewUser = function (id) {
+          window.location.href = "myself.html?id=" + id;
+        };
+
+        window.toggleUserStatus = async function (id, action) {
+          try {
+            var status = action === "ban" ? BANNED : ACTIVE;
+            await axios.post("http://localhost:8081/api/admin/users/update-status", { id: id, status: status });
+            await window.loadUserData();
+          } catch (err) {
+            alert("failed");
+          }
+        };
+
+        window.deleteUser = async function (id) {
+          try {
+            await axios.post("http://localhost:8081/api/admin/users/delete", { id: id });
+            await window.loadUserData();
+          } catch (err) {
+            alert("failed");
+          }
+        };
+
+        window.updateSelectedCount = function () {
+          document.getElementById("selectedCount").textContent = document.querySelectorAll(".row-checkbox:checked").length;
+        };
+
+        window.selectAllRows = function () {
+          var checked = document.getElementById("selectAll").checked;
+          document.querySelectorAll(".row-checkbox").forEach(function (checkbox) { checkbox.checked = checked; });
+          window.updateSelectedCount();
+        };
+
+        window.batchAction = async function (action) {
+          var ids = Array.from(document.querySelectorAll(".row-checkbox:checked")).map(function (cb) { return Number(cb.getAttribute("data-id")); });
+          if (!ids.length) {
+            alert(TEXT.selectUser);
+            return;
+          }
+          for (var i = 0; i < ids.length; i += 1) {
+            if (action === "delete") {
+              await axios.post("http://localhost:8081/api/admin/users/delete", { id: ids[i] });
+            } else {
+              await axios.post("http://localhost:8081/api/admin/users/update-status", { id: ids[i], status: action === "ban" ? BANNED : ACTIVE });
+            }
+          }
+          await window.loadUserData();
+        };
+
+        window.changePage = function (step) {
+          var totalPages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+          var next = state.currentPage + step;
+          if (next < 1 || next > totalPages) return;
+          state.currentPage = next;
+          renderTable();
+        };
+      })();
+    </script>
   </head>
   <body>
     <div class="title">
@@ -1026,5 +1503,10 @@
     <div class="page-foot">
       <p class="copyright">版权所有 © 2026 校园寻物系统</p>
     </div>
+    <script>
+      window.viewUser = function (id) {
+        window.location.href = "myself.html?id=" + id;
+      };
+    </script>
   </body>
 </html>

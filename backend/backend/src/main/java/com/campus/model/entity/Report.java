@@ -1,24 +1,19 @@
 package com.campus.model.entity;
 
-import java.util.Date;
-
-/**
- * 举报实体类
- * 对应数据库表：reports
- */
 public class Report {
-    private Integer reportId;   // 举报主键ID
-    private Integer itemId;     // 被举报的物品/帖子ID
-    private Integer reporterId; // 举报人用户ID
-    private String reason;      // 举报原因（简述）
-    private String description; // 详细描述
-    private String status;      // 状态：待处理、处理中、已处理、已驳回
-    private Date createdAt;     // 创建时间
+    private Integer reportId;
+    private Integer itemId;
+    private Integer reporterId;
+    private Integer reportedUserId;
+    private Integer itemOwnerId;
+    private String itemName;
+    private String reporterName;
+    private String reportedUsername;
+    private String reason;
+    private String description;
+    private String status;
+    private String createdAt;
 
-    // 无参构造函数（MyBatis 必须）
-    public Report() {}
-
-    // Getter 和 Setter 方法 (必须要写，否则 Controller 会报 undefined 错误)
     public Integer getReportId() {
         return reportId;
     }
@@ -41,6 +36,46 @@ public class Report {
 
     public void setReporterId(Integer reporterId) {
         this.reporterId = reporterId;
+    }
+
+    public Integer getReportedUserId() {
+        return reportedUserId;
+    }
+
+    public void setReportedUserId(Integer reportedUserId) {
+        this.reportedUserId = reportedUserId;
+    }
+
+    public Integer getItemOwnerId() {
+        return itemOwnerId;
+    }
+
+    public void setItemOwnerId(Integer itemOwnerId) {
+        this.itemOwnerId = itemOwnerId;
+    }
+
+    public String getItemName() {
+        return itemName;
+    }
+
+    public void setItemName(String itemName) {
+        this.itemName = itemName;
+    }
+
+    public String getReporterName() {
+        return reporterName;
+    }
+
+    public void setReporterName(String reporterName) {
+        this.reporterName = reporterName;
+    }
+
+    public String getReportedUsername() {
+        return reportedUsername;
+    }
+
+    public void setReportedUsername(String reportedUsername) {
+        this.reportedUsername = reportedUsername;
     }
 
     public String getReason() {
@@ -67,11 +102,11 @@ public class Report {
         this.status = status;
     }
 
-    public Date getCreatedAt() {
+    public String getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(Date createdAt) {
+    public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
     }
 }

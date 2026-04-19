@@ -428,7 +428,7 @@
     </style>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
-<script>
+<script type="text/plain" data-disabled="legacy-script-0">
 //1. 定义全局状态常量 (KISS 原则：统一管理)
 const ItemStatus = {
     PENDING: 0,   // 审核中
@@ -615,6 +615,475 @@ function logout() {
     localStorage.clear();
     window.location.href = "login.html";
 }
+</script>
+<script type="text/plain" data-disabled="legacy-script-1">
+window.profilePageState = {
+  userId: null,
+  profile: null,
+  status: {
+    PENDING: 0,
+    APPROVED: 1,
+    REJECTED: 2,
+    HIDDEN: 3,
+    CLOSED: 4,
+    DELETED: 5,
+  },
+};
+
+window.onload = async function () {
+  const isLoggedIn = localStorage.getItem("isLoggedIn");
+  const username = localStorage.getItem("username");
+  const isAdmin = localStorage.getItem("isAdmin");
+  const userId = localStorage.getItem("userId");
+
+  if (isLoggedIn !== "true" || !username || !userId) {
+    alert("请先登录");
+    window.location.href = "logIn.html";
+    return;
+  }
+
+  window.profilePageState.userId = Number(userId);
+  document.getElementById("userAvatar").textContent = username.charAt(0).toUpperCase();
+  document.getElementById("displayUsername").textContent = username;
+  document.getElementById("usernameDisplay").textContent = username;
+
+  if (isAdmin === "true") {
+    document.getElementById("adminTab").style.display = "block";
+    document.getElementById("usernameDisplay").innerHTML =
+      `${username} <span style="color:#ff9800; font-size:12px;">(管理员)</span>`;
+  }
+
+  setupProfileTabs();
+  await loadUserProfile();
+  await loadUserPosts(window.profilePageState.userId);
+};
+
+function setupProfileTabs() {
+  const tabItems = document.querySelectorAll(".tab-item");
+  tabItems.forEach((tab) => {
+    tab.addEventListener("click", function () {
+      tabItems.forEach((entry) => entry.classList.remove("active"));
+      document.querySelectorAll(".content-section").forEach((section) => {
+        section.classList.remove("active");
+      });
+      tab.classList.add("active");
+      document.getElementById(tab.getAttribute("data-target")).classList.add("active");
+    });
+  });
+}
+
+async function loadUserProfile() {
+  try {
+    const res = await axios.get(`http://localhost:8081/api/users/${window.profilePageState.userId}`);
+    window.profilePageState.profile = res.data || null;
+    if (!window.profilePageState.profile || !window.profilePageState.profile.username) {
+      return;
+    }
+
+    const profile = window.profilePageState.profile;
+    document.getElementById("displayUsername").textContent = profile.username;
+    document.getElementById("userAvatar").textContent = profile.username.charAt(0).toUpperCase();
+    document.getElementById("registerTime").textContent = profile.registerTime || "-";
+    localStorage.setItem("username", profile.username);
+  } catch (err) {
+    console.error("加载个人资料失败", err);
+  }
+}
+
+function getPostStatusMeta(status) {
+  const map = {
+    0: { text: "待审核", color: "#f1c40f" },
+    1: { text: "展示中", color: "#2ecc71" },
+    2: { text: "已驳回", color: "#e74c3c" },
+    3: { text: "已隐藏", color: "#95a5a6" },
+    4: { text: "已下架", color: "#34495e" },
+    5: { text: "已删除", color: "#7f8c8d" },
+  };
+  return map[status] || { text: "未知", color: "#666" };
+}
+
+function getActionButtons(item) {
+  const status = window.profilePageState.status;
+  let buttons = "";
+
+  if (item.status === status.PENDING || item.status === status.REJECTED) {
+    buttons += `<button class="btn btn-danger" onclick="deletePost(${item.item_id})">删除</button>`;
+  }
+
+  if (item.status === status.APPROVED) {
+    buttons += `<button class="btn btn-secondary" onclick="updateStatus(${item.item_id}, ${status.HIDDEN})">隐藏</button>`;
+  }
+
+  if (item.status === status.HIDDEN) {
+    buttons += `<button class="btn btn-secondary" onclick="updateStatus(${item.item_id}, ${status.APPROVED})">恢复</button>`;
+  }
+
+  if (
+    item.status !== status.CLOSED &&
+    item.status !== status.DELETED &&
+    item.status !== status.HIDDEN
+  ) {
+    buttons += `<button class="btn btn-secondary" onclick="updateStatus(${item.item_id}, ${status.CLOSED})">下架</button>`;
+  }
+
+  if (!buttons) {
+    buttons = `<span style="color:gray; font-size:12px;">当前状态无需操作</span>`;
+  }
+
+  return buttons;
+}
+
+async function loadUserPosts(userId) {
+  const publishList = document.getElementById("publishList");
+  try {
+    const res = await axios.get(`http://localhost:8081/api/my-items?userId=${userId}`);
+    const posts = res.data || [];
+    document.getElementById("postCount").textContent = posts.length;
+
+    if (posts.length === 0) {
+      publishList.innerHTML = '<div class="empty-state">您还没有发布任何帖子</div>';
+      return;
+    }
+
+    publishList.innerHTML = posts
+      .map((post) => {
+        const statusInfo = getPostStatusMeta(post.status);
+        return `
+          <div class="publish-item">
+            <h3>${post.item_name}</h3>
+            <p>
+              <span class="item-tag">${post.item_type || "-"}</span>
+              <span class="item-tag" style="color:white; background-color:${statusInfo.color}">${statusInfo.text}</span>
+            </p>
+            <p class="post-info">地点 ${post.location || "-"} | 时间 ${post.lost_found_time || "-"}</p>
+            <div class="item-btn-group">${getActionButtons(post)}</div>
+          </div>
+        `;
+      })
+      .join("");
+  } catch (err) {
+    console.error("加载帖子失败", err);
+    publishList.innerHTML = '<div class="empty-state">加载失败，请检查后端服务</div>';
+  }
+}
+
+async function updateStatus(itemId, newStatus) {
+  try {
+    const res = await axios.put(`http://localhost:8081/api/items/${itemId}/status`, null, {
+      params: { status: newStatus, userId: window.profilePageState.userId },
+    });
+    if (res.data.code === 200) {
+      await loadUserPosts(window.profilePageState.userId);
+      alert("操作成功");
+    } else {
+      alert(res.data.message || "操作失败");
+    }
+  } catch (err) {
+    console.error("更新状态失败", err);
+    alert("操作失败");
+  }
+}
+
+async function deletePost(itemId) {
+  if (!confirm("确定要删除这条帖子吗？只有待审核和已驳回的帖子允许删除。")) return;
+
+  try {
+    const res = await axios.delete(`http://localhost:8081/api/items/${itemId}`, {
+      params: {
+        userId: window.profilePageState.userId,
+        isAdmin: false,
+      },
+    });
+    if (res.data.code === 200) {
+      await loadUserPosts(window.profilePageState.userId);
+      alert("删除成功");
+    } else {
+      alert(res.data.message || "删除失败");
+    }
+  } catch (err) {
+    console.error("删除失败", err);
+    alert("删除失败");
+  }
+}
+
+function activateProfileTab(targetId) {
+  document.querySelectorAll(".tab-item").forEach((tab) => {
+    tab.classList.toggle("active", tab.getAttribute("data-target") === targetId);
+  });
+  document.querySelectorAll(".content-section").forEach((section) => {
+    section.classList.toggle("active", section.id === targetId);
+  });
+}
+
+function changePassword() {
+  activateProfileTab("passwordSection");
+}
+
+async function editProfile() {
+  const current = window.profilePageState.profile || {};
+  const nextUsername = prompt("请输入新的用户名", current.username || localStorage.getItem("username") || "");
+  if (nextUsername === null) return;
+  const nextEmail = prompt("请输入邮箱", current.email || "");
+  if (nextEmail === null) return;
+  const nextPhone = prompt("请输入手机号", current.phone || "");
+  if (nextPhone === null) return;
+
+  try {
+    const res = await axios.put(`http://localhost:8081/api/users/${window.profilePageState.userId}`, {
+      username: nextUsername.trim(),
+      email: nextEmail.trim(),
+      phone: nextPhone.trim(),
+    });
+    if (res.data.code === 200) {
+      localStorage.setItem("username", nextUsername.trim());
+      await loadUserProfile();
+      alert("资料更新成功");
+    } else {
+      alert(res.data.message || "资料更新失败");
+    }
+  } catch (err) {
+    console.error("更新资料失败", err);
+    alert("资料更新失败");
+  }
+}
+
+async function submitPasswordChange() {
+  const oldPassword = document.getElementById("oldPassword").value;
+  const newPassword = document.getElementById("newPassword").value;
+  const confirmPassword = document.getElementById("confirmPassword").value;
+
+  if (!newPassword || newPassword.length < 6) {
+    alert("新密码至少 6 位");
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    alert("两次输入的新密码不一致");
+    return;
+  }
+
+  try {
+    const res = await axios.put("http://localhost:8081/api/users/password", {
+      userId: window.profilePageState.userId,
+      oldPassword,
+      newPassword,
+    });
+
+    if (res.data.code === 200) {
+      alert("密码修改成功，请重新登录");
+      logout();
+    } else {
+      alert(res.data.message || "密码修改失败");
+    }
+  } catch (err) {
+    console.error("修改密码失败", err);
+    alert("密码修改失败");
+  }
+}
+
+function logout() {
+  localStorage.clear();
+  window.location.href = "logIn.html";
+}
+</script>
+<script>
+(() => {
+  const STATUS = { PENDING: 0, APPROVED: 1, REJECTED: 2, HIDDEN: 3, CLOSED: 4, DELETED: 5 };
+  const TEXT = {
+    login: "\u8bf7\u5148\u767b\u5f55",
+    adminTag: "\u7ba1\u7406\u5458",
+    pending: "\u5f85\u5ba1\u6838",
+    approved: "\u5c55\u793a\u4e2d",
+    rejected: "\u5df2\u9a73\u56de",
+    hidden: "\u5df2\u9690\u85cf",
+    closed: "\u5df2\u4e0b\u67b6",
+    deleted: "\u5df2\u5220\u9664",
+  };
+  const state = { userId: null, profile: null, isOwnProfile: true, currentUsername: "", isAdmin: false };
+
+  async function loadCurrentLoginUser(currentUserId) {
+    try {
+      const res = await axios.get(`http://localhost:8081/api/users/${currentUserId}`);
+      const currentUser = res.data || null;
+      if (currentUser && currentUser.username) {
+        state.currentUsername = currentUser.username;
+        localStorage.setItem("username", currentUser.username);
+        return;
+      }
+    } catch (err) {
+      console.error("load current user failed", err);
+    }
+    state.currentUsername = localStorage.getItem("username") || "";
+  }
+
+  function statusMeta(status) {
+    const map = {
+      0: { text: TEXT.pending, color: "#f1c40f" },
+      1: { text: TEXT.approved, color: "#2ecc71" },
+      2: { text: TEXT.rejected, color: "#e74c3c" },
+      3: { text: TEXT.hidden, color: "#95a5a6" },
+      4: { text: TEXT.closed, color: "#34495e" },
+      5: { text: TEXT.deleted, color: "#7f8c8d" },
+    };
+    return map[status] || { text: "-", color: "#666" };
+  }
+
+  function activateTab(id) {
+    document.querySelectorAll(".tab-item").forEach((tab) => {
+      tab.classList.toggle("active", tab.getAttribute("data-target") === id);
+    });
+    document.querySelectorAll(".content-section").forEach((section) => {
+      section.classList.toggle("active", section.id === id);
+    });
+  }
+
+  async function loadProfile() {
+    try {
+      const res = await axios.get(`http://localhost:8081/api/users/${state.userId}`);
+      state.profile = res.data || null;
+      if (!state.profile || !state.profile.username) return;
+      document.getElementById("displayUsername").textContent = state.profile.username;
+      document.getElementById("userAvatar").textContent = state.profile.username.charAt(0).toUpperCase();
+      document.getElementById("registerTime").textContent = state.profile.registerTime || "-";
+    } catch (err) {
+      console.error("profile load failed", err);
+    }
+  }
+
+  function actionButtons(item) {
+    const buttons = [];
+    if (item.status === STATUS.PENDING || item.status === STATUS.REJECTED) {
+      buttons.push(`<button class="btn btn-danger" onclick="deletePost(${item.item_id})">\u5220\u9664</button>`);
+    }
+    if (item.status === STATUS.APPROVED) {
+      buttons.push(`<button class="btn btn-secondary" onclick="updateStatus(${item.item_id}, ${STATUS.HIDDEN})">\u9690\u85cf</button>`);
+    }
+    if (item.status === STATUS.HIDDEN) {
+      buttons.push(`<button class="btn btn-secondary" onclick="updateStatus(${item.item_id}, ${STATUS.APPROVED})">\u6062\u590d</button>`);
+    }
+    if (item.status !== STATUS.CLOSED && item.status !== STATUS.DELETED && item.status !== STATUS.HIDDEN) {
+      buttons.push(`<button class="btn btn-secondary" onclick="updateStatus(${item.item_id}, ${STATUS.CLOSED})">\u4e0b\u67b6</button>`);
+    }
+    return buttons.join("") || '<span style="color:gray; font-size:12px;">-</span>';
+  }
+
+  async function renderPosts() {
+    const container = document.getElementById("publishList");
+    try {
+      const res = await axios.get(`http://localhost:8081/api/my-items?userId=${state.userId}`);
+      const posts = res.data || [];
+      document.getElementById("postCount").textContent = posts.length;
+      if (!posts.length) {
+        container.innerHTML = '<div class="empty-state">\u60a8\u8fd8\u6ca1\u6709\u53d1\u5e03\u4efb\u4f55\u5e16\u5b50</div>';
+        return;
+      }
+      container.innerHTML = posts.map((post) => {
+        const meta = statusMeta(post.status);
+        return `<div class="publish-item">
+          <h3>${post.item_name}</h3>
+          <p><span class="item-tag">${post.item_type || "-"}</span>
+          <span class="item-tag" style="color:white; background-color:${meta.color}">${meta.text}</span></p>
+          <p class="post-info">${post.location || "-"} | ${post.lost_found_time || "-"}</p>
+          <div class="item-btn-group">${actionButtons(post)}</div>
+        </div>`;
+      }).join("");
+    } catch (err) {
+      container.innerHTML = '<div class="empty-state">load failed</div>';
+    }
+  }
+
+  window.onload = async function () {
+    const isLoggedIn = localStorage.getItem("isLoggedIn");
+    const username = localStorage.getItem("username");
+    const userId = localStorage.getItem("userId");
+    const requestedUserId = new URLSearchParams(window.location.search).get("id");
+    const isAdmin = localStorage.getItem("isAdmin") === "true";
+    if (isLoggedIn !== "true" || !username || !userId) {
+      alert(TEXT.login);
+      window.location.href = "logIn.html";
+      return;
+    }
+    state.isAdmin = isAdmin;
+    await loadCurrentLoginUser(Number(userId));
+    state.userId = requestedUserId && isAdmin ? Number(requestedUserId) : Number(userId);
+    state.isOwnProfile = Number(userId) === state.userId;
+    document.getElementById("userAvatar").textContent = (state.isOwnProfile ? state.currentUsername : "?").charAt(0).toUpperCase();
+    document.getElementById("displayUsername").textContent = state.isOwnProfile ? state.currentUsername : "\u52a0\u8f7d\u4e2d";
+    document.getElementById("usernameDisplay").textContent = state.currentUsername;
+    if (isAdmin && state.isOwnProfile) {
+      document.getElementById("adminTab").style.display = "block";
+      document.getElementById("usernameDisplay").innerHTML = `${state.currentUsername} <span style="color:#ff9800; font-size:12px;">(${TEXT.adminTag})</span>`;
+    }
+    document.querySelectorAll(".tab-item").forEach((tab) => {
+      tab.addEventListener("click", () => activateTab(tab.getAttribute("data-target")));
+    });
+    await loadProfile();
+    await renderPosts();
+    if (!state.isOwnProfile) {
+      const infoBtnGroup = document.querySelector(".info-btn-group");
+      const passwordTab = document.querySelector('[data-target="passwordSection"]');
+      const adminTab = document.getElementById("adminTab");
+      const adminSection = document.getElementById("adminSection");
+      const passwordSection = document.getElementById("passwordSection");
+      if (infoBtnGroup) infoBtnGroup.style.display = "none";
+      if (passwordTab) passwordTab.style.display = "none";
+      if (passwordSection) passwordSection.style.display = "none";
+      if (adminTab) adminTab.style.display = "none";
+      if (adminSection) adminSection.style.display = "none";
+      activateTab("myPosts");
+      document.querySelector(".page-title").textContent = "\u7528\u6237\u4e3b\u9875";
+      document.getElementById("usernameDisplay").textContent = state.currentUsername;
+      if (state.isAdmin) {
+        document.getElementById("usernameDisplay").innerHTML =
+          `${state.currentUsername} <span style="color:#ff9800; font-size:12px;">(${TEXT.adminTag})</span>`;
+      }
+    }
+  };
+
+  window.updateStatus = async function (itemId, status) {
+    await axios.put(`http://localhost:8081/api/items/${itemId}/status`, null, { params: { status, userId: state.userId } });
+    await renderPosts();
+  };
+
+  window.deletePost = async function (itemId) {
+    await axios.delete(`http://localhost:8081/api/items/${itemId}`, { params: { userId: state.userId, isAdmin: false } });
+    await renderPosts();
+  };
+
+  window.changePassword = function () {
+    activateTab("passwordSection");
+  };
+
+  window.editProfile = async function () {
+    if (!state.isOwnProfile) return;
+    const current = state.profile || {};
+    const username = prompt("username", current.username || localStorage.getItem("username") || "");
+    if (username === null) return;
+    const email = prompt("email", current.email || "");
+    if (email === null) return;
+    const phone = prompt("phone", current.phone || "");
+    if (phone === null) return;
+    const res = await axios.put(`http://localhost:8081/api/users/${state.userId}`, { username, email, phone });
+    if (res.data.code === 200) {
+      await loadProfile();
+    }
+  };
+
+  window.submitPasswordChange = async function () {
+    if (!state.isOwnProfile) return;
+    const oldPassword = document.getElementById("oldPassword").value;
+    const newPassword = document.getElementById("newPassword").value;
+    const confirmPassword = document.getElementById("confirmPassword").value;
+    if (!newPassword || newPassword.length < 6 || newPassword !== confirmPassword) return;
+    const res = await axios.put("http://localhost:8081/api/users/password", { userId: state.userId, oldPassword, newPassword });
+    if (res.data.code === 200) window.logout();
+  };
+
+  window.logout = function () {
+    localStorage.clear();
+    window.location.href = "logIn.html";
+  };
+})();
 </script>
   </head>
   <body>

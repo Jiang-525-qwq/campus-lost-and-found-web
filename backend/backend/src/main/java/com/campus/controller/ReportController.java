@@ -1,10 +1,11 @@
 package com.campus.controller;
 
-import java.util.List;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,29 +17,28 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.campus.mapper.ReportMapper;
-// 注意：如果这里报错，请点击红叉选择 "Import 'Report' (com.campus...)"
-// 或者是手动修改为你 Report.java 实际所在的包名
 import com.campus.model.entity.Report;
 
 @RestController
 @RequestMapping("/api/reports")
-@CrossOrigin // 解决跨域，防止前端 Axios 报错
+@CrossOrigin
 public class ReportController {
+    private static final String STATUS_PENDING = "待处理";
+    private static final String STATUS_PROCESSING = "处理中";
+    private static final String STATUS_RESOLVED = "已处理";
+    private static final String STATUS_REJECTED = "已驳回";
 
     @Autowired
     private ReportMapper reportMapper;
 
-    /**
-     * 接收前端举报提交
-     * 对应前端 axios.post("http://localhost:8081/api/reports", reportData)
-     */
- // 1. 获取所有举报列表
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @GetMapping
     public List<Report> getAllReports() {
-        return reportMapper.selectAllReports(); 
+        return reportMapper.selectAllReports();
     }
 
-    // 2. 更新举报状态 (处理/驳回)
     @PutMapping("/{id}/status")
     public Map<String, Object> updateStatus(@PathVariable Integer id, @RequestParam String status) {
         reportMapper.updateReportStatus(id, status);
@@ -46,31 +46,94 @@ public class ReportController {
         res.put("code", 200);
         return res;
     }
+
+    @PostMapping("/{id}/handle")
+    public Map<String, Object> handleReport(@PathVariable Integer id, @RequestBody Map<String, String> payload) {
+        Map<String, Object> result = new HashMap<>();
+        String action = payload.getOrDefault("action", "");
+        String note = payload.getOrDefault("note", "").trim();
+
+        try {
+            Report report = reportMapper.selectAllReports().stream()
+                    .filter(item -> id.equals(item.getReportId()))
+                    .findFirst()
+                    .orElse(null);
+
+            if (report == null) {
+                result.put("code", 404);
+                result.put("message", "Report not found");
+                return result;
+            }
+
+            String nextStatus;
+            if ("takedown".equals(action)) {
+                jdbcTemplate.update("UPDATE items SET status = 4 WHERE item_id = ?", report.getItemId());
+                nextStatus = STATUS_RESOLVED;
+            } else if ("reject".equals(action)) {
+                nextStatus = STATUS_REJECTED;
+            } else if ("processing".equals(action)) {
+                nextStatus = STATUS_PROCESSING;
+            } else {
+                nextStatus = STATUS_RESOLVED;
+            }
+
+            String mergedDescription = mergeDescription(report.getDescription(), note, action);
+            reportMapper.updateReportHandling(id, mergedDescription, nextStatus);
+
+            result.put("code", 200);
+            result.put("message", "Handled");
+        } catch (Exception e) {
+            result.put("code", 500);
+            result.put("message", "Server error: " + e.getMessage());
+        }
+        return result;
+    }
+
     @PostMapping
     public Map<String, Object> addReport(@RequestBody Report report) {
         Map<String, Object> result = new HashMap<>();
-        
         try {
-            // 打印收到的数据，方便你在控制台调试
-            System.out.println("收到举报: 帖子ID=" + report.getItemId() + ", 原因=" + report.getReason());
+            if (report.getReportedUserId() == null || report.getReportedUserId() == 0) {
+                Integer reportedUserId = jdbcTemplate.queryForObject(
+                        "SELECT user_id FROM items WHERE item_id = ?",
+                        Integer.class,
+                        report.getItemId());
+                report.setReportedUserId(reportedUserId);
+            }
 
-            // 执行插入数据库操作
             int rows = reportMapper.insertReport(report);
-
             if (rows > 0) {
                 result.put("code", 200);
-                result.put("message", "举报提交成功");
+                result.put("message", "Created");
             } else {
                 result.put("code", 500);
-                result.put("message", "提交失败，数据库未记录");
+                result.put("message", "Insert failed");
             }
         } catch (Exception e) {
-            // 打印详细错误到 IDE 控制台
-            e.printStackTrace(); 
             result.put("code", 500);
-            result.put("message", "服务器错误: " + e.getMessage());
+            result.put("message", "Server error: " + e.getMessage());
         }
-        
         return result;
+    }
+
+    private String mergeDescription(String original, String note, String action) {
+        StringBuilder sb = new StringBuilder();
+        if (original != null && !original.trim().isEmpty()) {
+            sb.append(original.trim());
+        }
+        if (!note.isEmpty()) {
+            if (sb.length() > 0) {
+                sb.append("\n\n");
+            }
+            if ("takedown".equals(action)) {
+                sb.append("[处理备注] ");
+            } else if ("reject".equals(action)) {
+                sb.append("[驳回原因] ");
+            } else {
+                sb.append("[备注] ");
+            }
+            sb.append(note);
+        }
+        return sb.toString();
     }
 }

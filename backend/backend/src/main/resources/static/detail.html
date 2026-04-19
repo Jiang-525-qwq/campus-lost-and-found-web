@@ -715,6 +715,329 @@
             window.location.href = "logIn.html";
         }
     </script>
+    <script>
+      window.detailPageState = {
+        itemId: null,
+        item: null,
+      };
+
+      window.onload = function () {
+        const detailItemId = new URLSearchParams(window.location.search).get("id");
+        if (!detailItemId) {
+          alert("未找到物品 ID");
+          window.location.href = "home.html";
+          return;
+        }
+
+        window.detailPageState.itemId = detailItemId;
+        document.getElementById("usernameDisplay").textContent =
+          localStorage.getItem("username") || "游客";
+
+        const commentInput = document.getElementById("commentInput");
+        if (commentInput) {
+          commentInput.addEventListener("keydown", function (event) {
+            if (event.ctrlKey && event.key === "Enter") {
+              submitComment();
+            }
+          });
+        }
+
+        loadItemDetail();
+        loadComments();
+      };
+
+      function parseContactInfo(description) {
+        const text = description || "";
+        const match = text.match(/联系方式[:：]\s*([^)）\n]+)/);
+        return match ? match[1].trim() : "-";
+      }
+
+      function cleanDescription(description) {
+        return (description || "").replace(/\s*[\(（]联系方式[:：][^)）]+[\)）]\s*$/, "").trim() || "-";
+      }
+
+      function getDetailStatusText(status) {
+        const statusMap = {
+          0: "待审核",
+          1: "已通过",
+          2: "已驳回",
+          3: "已隐藏",
+          4: "已下架",
+          5: "已删除",
+        };
+        return statusMap[status] || "未知";
+      }
+
+      async function loadItemDetail() {
+        try {
+          const res = await axios.get(`http://localhost:8081/api/items/${window.detailPageState.itemId}`);
+          const item = res.data || {};
+          window.detailPageState.item = item;
+
+          document.querySelector(".item-name").innerText = item.item_name || "未命名物品";
+          document.querySelector(".item-desc").innerText = cleanDescription(item.description);
+
+          const infoValues = document.querySelectorAll(".info-value");
+          infoValues[0].innerText = item.location || "-";
+          infoValues[1].innerText = item.lost_found_time || "-";
+          infoValues[2].innerText = item.created_at || item.create_time || "-";
+          infoValues[3].innerText = parseContactInfo(item.description);
+
+          const typeBadge = document.querySelector(".badge-lost, .badge-found");
+          const statusBadge = document.querySelector(".badge-pending");
+          if (typeBadge) {
+            if (item.item_type === "found") {
+              typeBadge.innerText = "招领信息";
+              typeBadge.className = "badge badge-found";
+            } else {
+              typeBadge.innerText = "寻物信息";
+              typeBadge.className = "badge badge-lost";
+            }
+          }
+          if (statusBadge) {
+            statusBadge.innerText = getDetailStatusText(item.status);
+          }
+
+          const publisherName = item.username || "匿名用户";
+          const publisherAvatar = document.querySelector(".publisher-avatar");
+          const publisherNameEl = document.querySelector(".publisher-name");
+          const publisherTimeEl = document.querySelector(".publisher-time");
+
+          if (publisherAvatar) publisherAvatar.textContent = publisherName.charAt(0).toUpperCase();
+          if (publisherNameEl) publisherNameEl.textContent = publisherName;
+          if (publisherTimeEl) publisherTimeEl.textContent = `发布于 ${item.created_at || item.create_time || "-"}`;
+        } catch (err) {
+          console.error("加载详情失败", err);
+          alert("加载详情失败");
+        }
+      }
+
+      async function loadComments() {
+        try {
+          const res = await axios.get(`http://localhost:8081/api/comments?itemId=${window.detailPageState.itemId}`);
+          const list = document.getElementById("commentsList");
+          list.innerHTML = (res.data || [])
+            .map(
+              (comment) => `
+                <div style="border-bottom: 1px solid #eee; padding: 10px 0;">
+                  <strong>${comment.username}</strong> <small style="color: #999;">${comment.create_time || "-"}</small>
+                  <p>${comment.content}</p>
+                </div>
+              `,
+            )
+            .join("");
+        } catch (err) {
+          console.error("加载评论失败", err);
+        }
+      }
+
+      async function submitComment() {
+        const content = document.getElementById("commentInput").value.trim();
+        const userId = localStorage.getItem("userId");
+        if (!userId) {
+          alert("请先登录");
+          return;
+        }
+        if (!content) {
+          alert("评论内容不能为空");
+          return;
+        }
+
+        try {
+          await axios.post("http://localhost:8081/api/comments", {
+            item_id: window.detailPageState.itemId,
+            user_id: userId,
+            content,
+          });
+          document.getElementById("commentInput").value = "";
+          await loadComments();
+        } catch (err) {
+          console.error("发表评论失败", err);
+          alert("发表评论失败");
+        }
+      }
+
+      function openReportModal() {
+        const userId = localStorage.getItem("userId");
+        if (!userId || userId === "undefined") {
+          alert("请先登录后再举报");
+          window.location.href = "logIn.html";
+          return;
+        }
+        document.getElementById("reportModal").style.display = "flex";
+      }
+
+      function closeReportModal() {
+        document.getElementById("reportModal").style.display = "none";
+      }
+
+      async function submitReport() {
+        const reporterId = localStorage.getItem("userId");
+        const reason = document.getElementById("reportReason").value;
+        const desc = document.getElementById("reportDesc").value;
+
+        try {
+          const res = await axios.post("http://localhost:8081/api/reports", {
+            itemId: Number(window.detailPageState.itemId),
+            reporterId: Number(reporterId),
+            reason,
+            description: desc,
+          });
+          if (res.data.code === 200) {
+            alert("举报已提交");
+            closeReportModal();
+          } else {
+            alert(res.data.message || "举报提交失败");
+          }
+        } catch (err) {
+          console.error("举报失败", err);
+          alert("举报提交失败");
+        }
+      }
+
+      async function shareItem() {
+        const shareUrl = window.location.href;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(shareUrl);
+            alert("链接已复制");
+          } else {
+            prompt("请复制以下链接", shareUrl);
+          }
+        } catch (err) {
+          prompt("请复制以下链接", shareUrl);
+        }
+      }
+
+      function logout() {
+        localStorage.clear();
+        window.location.href = "logIn.html";
+      }
+    </script>
+    <script>
+      (() => {
+        const state = { itemId: null, item: null };
+
+        function contactInfo(description) {
+          const text = description || "";
+          const match = text.match(/联系方式[:：]\s*([^)）\n]+)/);
+          return match ? match[1].trim() : "-";
+        }
+
+        function cleanDescription(description) {
+          return (description || "").replace(/\s*[\(（]联系方式[:：][^)）]+[\)）]\s*$/, "").trim() || "-";
+        }
+
+        function statusText(status) {
+          const map = {
+            0: "\u5f85\u5ba1\u6838",
+            1: "\u5df2\u901a\u8fc7",
+            2: "\u5df2\u9a73\u56de",
+            3: "\u5df2\u9690\u85cf",
+            4: "\u5df2\u4e0b\u67b6",
+            5: "\u5df2\u5220\u9664",
+          };
+          return map[status] || "-";
+        }
+
+        window.onload = function () {
+          state.itemId = new URLSearchParams(window.location.search).get("id");
+          if (!state.itemId) {
+            window.location.href = "home.html";
+            return;
+          }
+          document.getElementById("usernameDisplay").textContent = localStorage.getItem("username") || "";
+          const commentInput = document.getElementById("commentInput");
+          if (commentInput) {
+            commentInput.addEventListener("keydown", function (event) {
+              if (event.ctrlKey && event.key === "Enter") window.submitComment();
+            });
+          }
+          window.loadItemDetail();
+          window.loadComments();
+        };
+
+        window.loadItemDetail = async function () {
+          const res = await axios.get(`http://localhost:8081/api/items/${state.itemId}`);
+          state.item = res.data || {};
+          const detailImage = document.querySelector(".detail-image");
+          if (detailImage) {
+            detailImage.src = state.item.image_url || "blank-image.svg";
+            detailImage.alt = state.item.item_name || "帖子图片";
+          }
+          document.querySelector(".item-name").innerText = state.item.item_name || "-";
+          document.querySelector(".item-desc").innerText = cleanDescription(state.item.description);
+          const infoValues = document.querySelectorAll(".info-value");
+          infoValues[0].innerText = state.item.location || "-";
+          infoValues[1].innerText = state.item.lost_found_time || "-";
+          infoValues[2].innerText = state.item.created_at || state.item.create_time || "-";
+          infoValues[3].innerText = contactInfo(state.item.description);
+          const statusBadge = document.querySelector(".badge-pending");
+          if (statusBadge) statusBadge.innerText = statusText(state.item.status);
+          const publisherName = state.item.username || "-";
+          const publisherAvatar = document.querySelector(".publisher-avatar");
+          if (publisherAvatar) publisherAvatar.textContent = publisherName.charAt(0).toUpperCase();
+          const publisherNameEl = document.querySelector(".publisher-name");
+          if (publisherNameEl) publisherNameEl.textContent = publisherName;
+          const publisherTimeEl = document.querySelector(".publisher-time");
+          if (publisherTimeEl) publisherTimeEl.textContent = state.item.created_at || state.item.create_time || "-";
+        };
+
+        window.loadComments = async function () {
+          const res = await axios.get(`http://localhost:8081/api/comments?itemId=${state.itemId}`);
+          document.getElementById("commentsList").innerHTML = (res.data || []).map(function (comment) {
+            return '<div style="border-bottom: 1px solid #eee; padding: 10px 0;"><strong>' + comment.username + '</strong> <small style="color:#999;">' + (comment.create_time || "-") + '</small><p>' + comment.content + "</p></div>";
+          }).join("");
+        };
+
+        window.submitComment = async function () {
+          const content = document.getElementById("commentInput").value.trim();
+          const userId = localStorage.getItem("userId");
+          if (!userId || !content) return;
+          await axios.post("http://localhost:8081/api/comments", { item_id: state.itemId, user_id: userId, content });
+          document.getElementById("commentInput").value = "";
+          await window.loadComments();
+        };
+
+        window.openReportModal = function () {
+          const userId = localStorage.getItem("userId");
+          if (!userId || userId === "undefined") {
+            window.location.href = "logIn.html";
+            return;
+          }
+          document.getElementById("reportModal").style.display = "flex";
+        };
+
+        window.closeReportModal = function () {
+          document.getElementById("reportModal").style.display = "none";
+        };
+
+        window.submitReport = async function () {
+          const userId = localStorage.getItem("userId");
+          await axios.post("http://localhost:8081/api/reports", {
+            itemId: Number(state.itemId),
+            reporterId: Number(userId),
+            reason: document.getElementById("reportReason").value,
+            description: document.getElementById("reportDesc").value,
+          });
+          window.closeReportModal();
+        };
+
+        window.shareItem = async function () {
+          const url = window.location.href;
+          try {
+            await navigator.clipboard.writeText(url);
+          } catch (err) {
+            prompt("copy", url);
+          }
+        };
+
+        window.logout = function () {
+          localStorage.clear();
+          window.location.href = "logIn.html";
+        };
+      })();
+    </script>
   </head>
   <body>
     <div class="title">

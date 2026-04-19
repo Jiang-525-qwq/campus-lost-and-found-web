@@ -906,6 +906,329 @@
       }
   }
 </script>
+    <script>
+  window.reportPageState = {
+    all: [],
+  };
+
+  window.onload = function () {
+    const isLoggedIn = localStorage.getItem("isLoggedIn");
+    const username = localStorage.getItem("username");
+    const isAdmin = localStorage.getItem("isAdmin");
+
+    if (isLoggedIn !== "true" || !username) {
+      alert("请先登录");
+      window.location.href = "logIn.html";
+      return;
+    }
+
+    if (isAdmin !== "true") {
+      alert("您没有管理员权限");
+      window.location.href = "home.html";
+      return;
+    }
+
+    document.getElementById("usernameDisplay").textContent = username;
+    document.getElementById("manageTab").classList.add("active");
+    document.getElementById("manageReports").classList.add("active");
+    loadReports();
+  };
+
+  function logout() {
+    localStorage.clear();
+    window.location.href = "logIn.html";
+  }
+
+  function getReportStatusClass(status) {
+    if (status === "待处理") return "tag-pending";
+    if (status === "处理中") return "tag-processing";
+    if (status === "已处理") return "tag-resolved";
+    return "tag-rejected";
+  }
+
+  async function loadReports() {
+    try {
+      const res = await axios.get("http://localhost:8081/api/reports");
+      window.reportPageState.all = res.data || [];
+      renderReports();
+    } catch (err) {
+      console.error("加载举报失败", err);
+      document.getElementById("reportsTableBody").innerHTML =
+        '<tr><td colspan="8" class="empty-state">数据加载失败，请确认后端已启动</td></tr>';
+    }
+  }
+
+  function renderReports() {
+    const statusFilter = document.getElementById("statusFilter").value;
+    const typeFilter = document.getElementById("typeFilter").value;
+    const reports = window.reportPageState.all.filter((report) => {
+      const matchesStatus = statusFilter === "all" || report.status === statusFilter;
+      const matchesType = typeFilter === "all" || report.reason === typeFilter;
+      return matchesStatus && matchesType;
+    });
+
+    const stats = {
+      "待处理": 0,
+      "处理中": 0,
+      "已处理": 0,
+      "已驳回": 0,
+    };
+    window.reportPageState.all.forEach((report) => {
+      if (stats[report.status] !== undefined) {
+        stats[report.status] += 1;
+      }
+    });
+
+    document.getElementById("pendingCount").textContent = stats["待处理"];
+    document.getElementById("processingCount").textContent = stats["处理中"];
+    document.getElementById("resolvedCount").textContent = stats["已处理"];
+    document.getElementById("totalCount").textContent = window.reportPageState.all.length;
+
+    document.getElementById("reportsTableBody").innerHTML = reports
+      .map((report) => {
+        return `
+          <tr>
+            <td>${report.reportId}</td>
+            <td>用户 ${report.reporterId}</td>
+            <td>物品 ${report.itemId}</td>
+            <td>${report.reportedUserId || "-"}</td>
+            <td>${report.reason || "-"}</td>
+            <td>${report.createdAt ? new Date(report.createdAt).toLocaleString() : "-"}</td>
+            <td><span class="tag ${getReportStatusClass(report.status)}">${report.status}</span></td>
+            <td class="action-buttons">
+              <button class="btn-small btn-view" onclick="viewReport(${report.reportId})">详情</button>
+              ${
+                report.status === "待处理"
+                  ? `<button class="btn-small btn-process" onclick="handleStatus(${report.reportId}, '处理中')">处理</button>`
+                  : ""
+              }
+              ${
+                report.status === "处理中"
+                  ? `<button class="btn-small btn-process" onclick="handleStatus(${report.reportId}, '已处理')">完成</button>`
+                  : ""
+              }
+            </td>
+          </tr>
+        `;
+      })
+      .join("");
+  }
+
+  async function handleStatus(id, newStatus) {
+    try {
+      await axios.put(`http://localhost:8081/api/reports/${id}/status?status=${encodeURIComponent(newStatus)}`);
+      await loadReports();
+    } catch (err) {
+      console.error("更新举报状态失败", err);
+      alert("状态更新失败");
+    }
+  }
+
+  function filterReports() {
+    renderReports();
+  }
+
+  function viewReport(reportId) {
+    const report = window.reportPageState.all.find((entry) => Number(entry.reportId) === Number(reportId));
+    if (!report) {
+      alert("未找到举报记录");
+      return;
+    }
+    window.location.href = `detail.html?id=${report.itemId}`;
+  }
+    </script>
+    <script>
+      (function () {
+        var STATUS = {
+          pending: "\u5f85\u5904\u7406",
+          processing: "\u5904\u7406\u4e2d",
+          resolved: "\u5df2\u5904\u7406",
+          rejected: "\u5df2\u9a73\u56de",
+        };
+        var TEXT = {
+          detail: "\u8be6\u60c5",
+          handle: "\u5904\u7406",
+          finish: "\u5b8c\u6210",
+          close: "\u5173\u95ed",
+          takedown: "\u4e0b\u67b6\u5e16\u5b50\u5e76\u5904\u7406",
+          reject: "\u9a73\u56de\u4e3e\u62a5",
+          note: "\u5904\u7406\u5907\u6ce8 / \u9a73\u56de\u539f\u56e0",
+          empty: "\u8bf7\u586b\u5199\u5904\u7406\u8bf4\u660e",
+          loadFailed: "load failed",
+        };
+        var state = { all: [], currentReportId: null };
+
+        function statusClass(value) {
+          if (value === STATUS.pending) return "tag-pending";
+          if (value === STATUS.processing) return "tag-processing";
+          if (value === STATUS.resolved) return "tag-resolved";
+          return "tag-rejected";
+        }
+
+        function updateTypeFilterOptions() {
+          var select = document.getElementById("typeFilter");
+          if (!select) return;
+          var current = select.value || "all";
+          var reasons = Array.from(new Set(state.all.map(function (item) {
+            return item.reason || "";
+          }).filter(Boolean)));
+          select.innerHTML = '<option value="all">\u5168\u90e8\u7c7b\u578b</option>' +
+            reasons.map(function (reason) {
+              return '<option value="' + reason.replace(/"/g, "&quot;") + '">' + reason + "</option>";
+            }).join("");
+          if (reasons.indexOf(current) >= 0 || current === "all") {
+            select.value = current;
+          }
+        }
+
+        function renderReports() {
+          var statusFilter = document.getElementById("statusFilter").value;
+          var typeFilter = document.getElementById("typeFilter").value;
+          var reports = state.all.filter(function (report) {
+            var matchesStatus = statusFilter === "all" || report.status === statusFilter;
+            var matchesType = typeFilter === "all" || report.reason === typeFilter;
+            return matchesStatus && matchesType;
+          });
+
+          var stats = {};
+          stats[STATUS.pending] = 0;
+          stats[STATUS.processing] = 0;
+          stats[STATUS.resolved] = 0;
+          stats[STATUS.rejected] = 0;
+          state.all.forEach(function (report) {
+            if (stats[report.status] !== undefined) stats[report.status] += 1;
+          });
+
+          document.getElementById("pendingCount").textContent = stats[STATUS.pending];
+          document.getElementById("processingCount").textContent = stats[STATUS.processing];
+          document.getElementById("resolvedCount").textContent = stats[STATUS.resolved];
+          document.getElementById("totalCount").textContent = state.all.length;
+
+          document.getElementById("reportsTableBody").innerHTML = reports.map(function (report) {
+            var actions = [
+              '<button class="btn-small btn-view" onclick="viewReport(' + report.reportId + ')">' + TEXT.detail + "</button>"
+            ];
+            if (report.status === STATUS.pending || report.status === STATUS.processing) {
+              actions.push('<button class="btn-small btn-process" onclick="openHandleModal(' + report.reportId + ')">' + TEXT.handle + "</button>");
+            }
+            return '<tr>' +
+              '<td>' + report.reportId + '</td>' +
+              '<td>' + (report.reporterName || report.reporterId || "-") + '</td>' +
+              '<td>' + ((report.itemName || "-") + " (#" + report.itemId + ")") + '</td>' +
+              '<td>' + (report.reportedUsername || "-") + '</td>' +
+              '<td>' + (report.reason || "-") + '</td>' +
+              '<td>' + (report.createdAt || "-") + '</td>' +
+              '<td><span class="tag ' + statusClass(report.status) + '">' + report.status + '</span></td>' +
+              '<td class="action-buttons">' + actions.join("") + '</td>' +
+              '</tr>';
+          }).join("");
+        }
+
+        function reportById(reportId) {
+          return state.all.find(function (entry) {
+            return Number(entry.reportId) === Number(reportId);
+          });
+        }
+
+        function closeHandleModal() {
+          document.getElementById("reportModal").classList.remove("active");
+        }
+
+        window.onload = function () {
+          if (localStorage.getItem("isLoggedIn") !== "true") {
+            window.location.href = "logIn.html";
+            return;
+          }
+          if (localStorage.getItem("isAdmin") !== "true") {
+            window.location.href = "home.html";
+            return;
+          }
+          document.getElementById("usernameDisplay").textContent = localStorage.getItem("username") || "";
+          document.getElementById("manageTab").classList.add("active");
+          document.getElementById("manageReports").classList.add("active");
+          window.loadReports();
+        };
+
+        window.logout = function () {
+          localStorage.clear();
+          window.location.href = "logIn.html";
+        };
+
+        window.loadReports = async function () {
+          try {
+            var res = await axios.get("http://localhost:8081/api/reports");
+            state.all = res.data || [];
+            updateTypeFilterOptions();
+            renderReports();
+          } catch (err) {
+            document.getElementById("reportsTableBody").innerHTML =
+              '<tr><td colspan="8" class="empty-state">' + TEXT.loadFailed + "</td></tr>";
+          }
+        };
+
+        window.filterReports = function () {
+          renderReports();
+        };
+
+        window.viewReport = function (reportId) {
+          var report = reportById(reportId);
+          if (!report) return;
+          window.location.href = "detail.html?id=" + report.itemId;
+        };
+
+        window.openHandleModal = function (reportId) {
+          var report = reportById(reportId);
+          if (!report) return;
+          state.currentReportId = reportId;
+          document.getElementById("modalContent").innerHTML =
+            '<div class="modal-header">' +
+              '<h3 class="modal-title">\u5904\u7406\u4e3e\u62a5 #' + report.reportId + '</h3>' +
+              '<button class="modal-close" onclick="closeHandleModal()">&times;</button>' +
+            '</div>' +
+            '<div class="modal-body">' +
+              '<div style="margin-bottom:12px;"><strong>\u4e3e\u62a5\u4eba\uff1a</strong>' + (report.reporterName || "-") + '</div>' +
+              '<div style="margin-bottom:12px;"><strong>\u88ab\u4e3e\u62a5\u7528\u6237\uff1a</strong>' + (report.reportedUsername || "-") + '</div>' +
+              '<div style="margin-bottom:12px;"><strong>\u5e16\u5b50\uff1a</strong>' + (report.itemName || "-") + '</div>' +
+              '<div style="margin-bottom:12px;"><strong>\u4e3e\u62a5\u7c7b\u578b\uff1a</strong>' + (report.reason || "-") + '</div>' +
+              '<div style="margin-bottom:12px;"><strong>\u539f\u59cb\u8bf4\u660e\uff1a</strong><div style="padding:10px;background:#f6f6f6;border-radius:6px;margin-top:6px;">' + (report.description || "-") + '</div></div>' +
+              '<div class="form-group">' +
+                '<label for="handleNote">' + TEXT.note + '</label>' +
+                '<textarea id="handleNote" style="width:100%;height:110px;border:1px solid #ddd;border-radius:8px;padding:10px;resize:none;"></textarea>' +
+              '</div>' +
+            '</div>' +
+            '<div class="modal-footer" style="display:flex;gap:10px;">' +
+              '<button class="btn-small btn-process" style="flex:1;" onclick="submitHandleAction(\'takedown\')">' + TEXT.takedown + '</button>' +
+              '<button class="btn-small btn-view" style="flex:1;background:#d9534f;color:#fff;" onclick="submitHandleAction(\'reject\')">' + TEXT.reject + '</button>' +
+              '<button class="btn-small btn-view" style="flex:1;" onclick="closeHandleModal()">' + TEXT.close + '</button>' +
+            '</div>';
+          document.getElementById("reportModal").classList.add("active");
+        };
+
+        window.closeHandleModal = closeHandleModal;
+
+        window.submitHandleAction = async function (action) {
+          var note = (document.getElementById("handleNote") || {}).value || "";
+          if (!note.trim()) {
+            alert(TEXT.empty);
+            return;
+          }
+          try {
+            var res = await axios.post(
+              "http://localhost:8081/api/reports/" + state.currentReportId + "/handle",
+              { action: action, note: note }
+            );
+            if (res.data.code === 200) {
+              closeHandleModal();
+              await window.loadReports();
+            } else {
+              alert(res.data.message || "failed");
+            }
+          } catch (err) {
+            alert("failed");
+          }
+        };
+      })();
+    </script>
   </head>
   <body>
     <div class="title">
@@ -1018,5 +1341,201 @@
     <div class="page-foot">
       <p class="copyright">版权所有 © 2026 校园寻物系统</p>
     </div>
+    <script>
+      (() => {
+        const STATUS = {
+          pending: "\u5f85\u5904\u7406",
+          processing: "\u5904\u7406\u4e2d",
+          resolved: "\u5df2\u5904\u7406",
+          rejected: "\u5df2\u9a73\u56de",
+        };
+        const state = { reports: [], currentReport: null, userCache: {} };
+
+        async function fetchUserName(userId) {
+          if (!userId) return "-";
+          if (state.userCache[userId]) return state.userCache[userId];
+          try {
+            const res = await axios.get(`http://localhost:8081/api/users/${userId}`);
+            const username = (res.data && res.data.username) || (`user-${userId}`);
+            state.userCache[userId] = username;
+            return username;
+          } catch (err) {
+            return `user-${userId}`;
+          }
+        }
+
+        async function enrichReport(report) {
+          const enriched = { ...report };
+          if (!enriched.reporterName && enriched.reporterId) {
+            enriched.reporterName = await fetchUserName(enriched.reporterId);
+          }
+          try {
+            const itemRes = await axios.get(`http://localhost:8081/api/items/${enriched.itemId}`);
+            const item = itemRes.data || {};
+            if (!enriched.itemName) enriched.itemName = item.item_name || `#${enriched.itemId}`;
+            if (!enriched.reportedUsername) enriched.reportedUsername = item.username || "-";
+            if (!enriched.reportedUserId) enriched.reportedUserId = item.user_id || null;
+          } catch (err) {}
+          return enriched;
+        }
+
+        function statusClass(value) {
+          if (value === STATUS.pending) return "tag-pending";
+          if (value === STATUS.processing) return "tag-processing";
+          if (value === STATUS.resolved) return "tag-resolved";
+          return "tag-rejected";
+        }
+
+        function refreshTypeFilter() {
+          const select = document.getElementById("typeFilter");
+          if (!select) return;
+          const current = select.value || "all";
+          const reasons = Array.from(new Set(state.reports.map((report) => report.reason).filter(Boolean)));
+          select.innerHTML =
+            '<option value="all">\u5168\u90e8\u7c7b\u578b</option>' +
+            reasons.map((reason) => `<option value="${reason}">${reason}</option>`).join("");
+          if (reasons.includes(current) || current === "all") {
+            select.value = current;
+          }
+        }
+
+        function renderReports() {
+          const statusFilter = (document.getElementById("statusFilter") || {}).value || "all";
+          const typeFilter = (document.getElementById("typeFilter") || {}).value || "all";
+          const rows = state.reports.filter((report) => {
+            const matchesStatus = statusFilter === "all" || report.status === statusFilter;
+            const matchesType = typeFilter === "all" || report.reason === typeFilter;
+            return matchesStatus && matchesType;
+          });
+
+          const stats = {
+            [STATUS.pending]: 0,
+            [STATUS.processing]: 0,
+            [STATUS.resolved]: 0,
+            [STATUS.rejected]: 0,
+          };
+          state.reports.forEach((report) => {
+            if (stats[report.status] !== undefined) stats[report.status] += 1;
+          });
+          document.getElementById("pendingCount").textContent = stats[STATUS.pending];
+          document.getElementById("processingCount").textContent = stats[STATUS.processing];
+          document.getElementById("resolvedCount").textContent = stats[STATUS.resolved];
+          document.getElementById("totalCount").textContent = state.reports.length;
+
+          document.getElementById("reportsTableBody").innerHTML = rows.map((report) => {
+            const actions = [`<button class="btn-small btn-view" onclick="viewReport(${report.reportId})">\u8be6\u60c5</button>`];
+            if (report.status === STATUS.pending || report.status === STATUS.processing) {
+              actions.push(`<button class="btn-small btn-process" onclick="openHandleModal(${report.reportId})">\u5904\u7406</button>`);
+            }
+            return `
+              <tr>
+                <td>${report.reportId}</td>
+                <td>${report.reporterName || report.reporterId || "-"}</td>
+                <td>${report.itemName || report.itemId || "-"}</td>
+                <td>${report.reportedUsername || report.reportedUserId || "-"}</td>
+                <td>${report.reason || "-"}</td>
+                <td>${report.createdAt || "-"}</td>
+                <td><span class="tag ${statusClass(report.status)}">${report.status}</span></td>
+                <td class="action-buttons">${actions.join("")}</td>
+              </tr>
+            `;
+          }).join("");
+        }
+
+        window.filterReports = function () {
+          renderReports();
+        };
+
+        window.viewReport = function (reportId) {
+          const report = state.reports.find((entry) => Number(entry.reportId) === Number(reportId));
+          if (!report) return;
+          window.location.href = `detail.html?id=${report.itemId}`;
+        };
+
+        window.openHandleModal = function (reportId) {
+          const report = state.reports.find((entry) => Number(entry.reportId) === Number(reportId));
+          if (!report) return;
+          state.currentReport = report;
+          document.getElementById("modalContent").innerHTML = `
+            <div class="modal-header">
+              <h3 class="modal-title">处理举报 #${report.reportId}</h3>
+              <button class="modal-close" onclick="closeHandleModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div style="margin-bottom:12px;"><strong>举报人：</strong>${report.reporterName || "-"}</div>
+              <div style="margin-bottom:12px;"><strong>被举报用户：</strong>${report.reportedUsername || "-"}</div>
+              <div style="margin-bottom:12px;"><strong>帖子：</strong>${report.itemName || "-"}</div>
+              <div style="margin-bottom:12px;"><strong>举报类型：</strong>${report.reason || "-"}</div>
+              <div style="margin-bottom:12px;"><strong>当前说明：</strong><div style="padding:10px;background:#f7f7f7;border-radius:6px;margin-top:6px;">${report.description || "-"}</div></div>
+              <div class="form-group">
+                <label for="handleReason">处理说明 / 驳回原因</label>
+                <textarea id="handleReason" style="width:100%;height:120px;border:1px solid #ddd;border-radius:8px;padding:10px;resize:none;"></textarea>
+              </div>
+            </div>
+            <div class="modal-footer" style="display:flex;gap:10px;">
+              <button class="btn-small btn-process" style="flex:1;" onclick="submitHandleAction('takedown')">下架帖子</button>
+              <button class="btn-small btn-view" style="flex:1;background:#d9534f;color:#fff;" onclick="submitHandleAction('reject')">驳回举报</button>
+              <button class="btn-small btn-view" style="flex:1;" onclick="closeHandleModal()">关闭</button>
+            </div>
+          `;
+          document.getElementById("reportModal").classList.add("active");
+        };
+
+        window.closeHandleModal = function () {
+          document.getElementById("reportModal").classList.remove("active");
+        };
+
+        window.submitHandleAction = async function (action) {
+          const note = ((document.getElementById("handleReason") || {}).value || "").trim();
+          if (!note) {
+            alert("\u8bf7\u586b\u5199\u5904\u7406\u8bf4\u660e");
+            return;
+          }
+          if (!state.currentReport) return;
+
+          try {
+            try {
+              const res = await axios.post(`http://localhost:8081/api/reports/${state.currentReport.reportId}/handle`, {
+                action,
+                note,
+              });
+              if (res.data.code !== 200) throw new Error("fallback");
+            } catch (err) {
+              if (action === "takedown") {
+                await axios.put(`http://localhost:8081/api/items/${state.currentReport.itemId}/takedown`);
+                await axios.put(`http://localhost:8081/api/reports/${state.currentReport.reportId}/status?status=${encodeURIComponent(STATUS.resolved)}`);
+              } else {
+                await axios.put(`http://localhost:8081/api/reports/${state.currentReport.reportId}/status?status=${encodeURIComponent(STATUS.rejected)}`);
+              }
+            }
+            window.closeHandleModal();
+            await window.loadReports();
+          } catch (err) {
+            console.error("handle report failed", err);
+            alert("failed");
+          }
+        };
+
+        window.loadReports = async function () {
+          try {
+            const res = await axios.get("http://localhost:8081/api/reports");
+            const rawReports = res.data || [];
+            state.reports = await Promise.all(rawReports.map(enrichReport));
+            refreshTypeFilter();
+            renderReports();
+          } catch (err) {
+            console.error("report load failed", err);
+            document.getElementById("reportsTableBody").innerHTML = '<tr><td colspan="8" class="empty-state">load failed</td></tr>';
+          }
+        };
+
+        document.getElementById("usernameDisplay").textContent = localStorage.getItem("username") || "";
+        const statusFilter = document.getElementById("statusFilter");
+        const typeFilter = document.getElementById("typeFilter");
+        if (statusFilter) statusFilter.onchange = window.filterReports;
+        if (typeFilter) typeFilter.onchange = window.filterReports;
+        window.loadReports();
+      })();
+    </script>
   </body>
 </html>

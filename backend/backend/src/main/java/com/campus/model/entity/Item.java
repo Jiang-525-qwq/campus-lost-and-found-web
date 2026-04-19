@@ -1,22 +1,20 @@
 package com.campus.model.entity;
 
-/**
- * 内容实体类
- * 对应数据库中的 items 表
- */
 public class Item {
-    // 1. 属性定义（严格对应数据库字段的驼峰形式）
-    private Long itemId;        // 对应数据库 item_id
-    private String itemType;    // 对应数据库 item_type
-    private String itemName;    // 对应数据库 item_name
-    private String userId;      // 对应数据库 user_id
-    private String createdAt;   // 对应数据库 created_at
+    private Long itemId;
+    private String itemType;
+    private String itemName;
+    private String userId;
+    private String location;
+    private String description;
+    private String lostFoundTime;
+    private String createdAt;
+    private String username;
+    private String imageUrl;
     private Integer status;
-    // 2. 无参构造方法
+
     public Item() {}
 
-    // 3. Getter 和 Setter 方法
-    // Spring 和 MyBatis 必须依靠这些方法来读写数据
     public Long getItemId() {
         return itemId;
     }
@@ -49,12 +47,52 @@ public class Item {
         this.userId = userId;
     }
 
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getLostFoundTime() {
+        return lostFoundTime;
+    }
+
+    public void setLostFoundTime(String lostFoundTime) {
+        this.lostFoundTime = lostFoundTime;
+    }
+
     public String getCreatedAt() {
         return createdAt;
     }
 
     public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public Integer getStatus() {

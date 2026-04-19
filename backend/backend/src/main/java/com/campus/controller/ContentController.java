@@ -1,25 +1,33 @@
-package com.campus.controller; // 如果这行报错，请点击 Eclipse 的修复选项
-
-import com.campus.model.entity.Item;
-import com.campus.service.ContentService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+package com.campus.controller;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.campus.model.entity.Item;
+import com.campus.service.ContentService;
+
 @RestController
 @RequestMapping("/api/admin/content")
-@CrossOrigin 
+@CrossOrigin
 public class ContentController {
+    private static final int STATUS_APPROVED = 1;
+    private static final int STATUS_HIDDEN = 3;
+    private static final int STATUS_DELETED = 5;
 
     @Autowired
     private ContentService contentService;
 
-    /**
-     * 获取内容列表接口
-     */
     @GetMapping("/list")
     public Map<String, Object> getContentList() {
         List<Item> list = contentService.findAll();
@@ -29,40 +37,41 @@ public class ContentController {
         return result;
     }
 
-    /**
-     * 统一状态更新接口（处理下架、恢复、逻辑删除）
-     */
     @PostMapping("/updateStatus")
     public Map<String, Object> updateStatus(@RequestBody Map<String, Object> params) {
-        // 1. 【核心修复】必须先从 params 中取出数据，确保变量在使用前已定义
+        Map<String, Object> result = new HashMap<>();
         if (params.get("id") == null || params.get("action") == null) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("code", 400);
-            error.put("message", "参数缺失");
-            return error;
+            result.put("code", 400);
+            result.put("message", "Missing params");
+            return result;
         }
 
         Long id = Long.valueOf(params.get("id").toString());
         String action = params.get("action").toString();
-        String statusValue;
+        Integer status;
 
-        // 2. 翻译逻辑：将前端 action 转为数据库状态文字
         if ("hide".equals(action)) {
-            statusValue = "已下架";
+            status = STATUS_HIDDEN;
         } else if ("restore".equals(action)) {
-            statusValue = "已发布";
+            status = STATUS_APPROVED;
         } else if ("delete".equals(action)) {
-            statusValue = "已删除";
+            status = STATUS_DELETED;
         } else {
-            statusValue = action;
+            status = Integer.valueOf(action);
         }
 
-        // 3. 【核心修复】调用 Service 中确切存在的方法名 updateStatus
-        contentService.updateStatus(id, statusValue);
-        
+        contentService.updateStatus(id, status);
+        result.put("code", 200);
+        result.put("message", "Updated");
+        return result;
+    }
+
+    @DeleteMapping("/{id}")
+    public Map<String, Object> deleteContent(@PathVariable Long id) {
+        contentService.deleteById(id);
         Map<String, Object> result = new HashMap<>();
         result.put("code", 200);
-        result.put("message", "操作成功");
+        result.put("message", "Deleted");
         return result;
     }
 }

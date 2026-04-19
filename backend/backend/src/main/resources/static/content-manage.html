@@ -579,7 +579,7 @@
       }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-<script>
+<script type="text/plain" data-disabled="legacy-script-0">
 	window.onload = function () {
               const isLoggedIn = localStorage.getItem("isLoggedIn");
               const username = localStorage.getItem("username");
@@ -835,6 +835,552 @@
                 });
               }
             });
+    </script>
+    <script type="text/plain" data-disabled="legacy-script-1">
+      window.contentAdminState = {
+        all: [],
+        filtered: [],
+        currentPage: 1,
+        pageSize: 10,
+        status: {
+          PENDING: 0,
+          APPROVED: 1,
+          REJECTED: 2,
+          HIDDEN: 3,
+          CLOSED: 4,
+          DELETED: 5,
+        },
+      };
+
+      window.onload = function () {
+        const isLoggedIn = localStorage.getItem("isLoggedIn");
+        const username = localStorage.getItem("username");
+        const isAdmin = localStorage.getItem("isAdmin");
+
+        if (isLoggedIn !== "true" || !username) {
+          alert("请先登录");
+          window.location.href = "logIn.html";
+          return;
+        }
+
+        if (isAdmin !== "true") {
+          alert("您没有管理员权限");
+          window.location.href = "home.html";
+          return;
+        }
+
+        document.getElementById("usernameDisplay").innerHTML =
+          `${username} <span style="color:#ff9800; font-size:12px;">(管理员)</span>`;
+
+        const searchInput = document.getElementById("searchInput");
+        if (searchInput) {
+          searchInput.addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+              searchContent();
+            }
+          });
+        }
+
+        loadContentData();
+      };
+
+      function logout() {
+        localStorage.clear();
+        window.location.href = "logIn.html";
+      }
+
+      function getContentStatusLabel(status) {
+        const statusMap = {
+          0: "待审核",
+          1: "已发布",
+          2: "已驳回",
+          3: "已隐藏",
+          4: "已下架",
+          5: "已删除",
+        };
+        return statusMap[status] || "未知";
+      }
+
+      function getContentStatusClass(status) {
+        if (status === window.contentAdminState.status.APPROVED) return "tag-status-published";
+        if (
+          status === window.contentAdminState.status.HIDDEN ||
+          status === window.contentAdminState.status.CLOSED
+        ) {
+          return "tag-status-hidden";
+        }
+        if (status === window.contentAdminState.status.DELETED) return "tag-status-deleted";
+        return "";
+      }
+
+      function getContentTypeLabel(type) {
+        if (type === "lost") return "寻物";
+        if (type === "found") return "招领";
+        return type || "未知";
+      }
+
+      async function loadContentData() {
+        try {
+          const res = await axios.get("http://localhost:8081/api/admin/content/list");
+          window.contentAdminState.all = res.data.data || [];
+          updateContentStats();
+          applyContentFilters();
+        } catch (err) {
+          console.error("加载内容失败", err);
+          document.getElementById("contentTableBody").innerHTML =
+            '<tr><td colspan="7" class="empty-state">数据加载失败，请确认后端已启动</td></tr>';
+        }
+      }
+
+      function updateContentStats() {
+        const all = window.contentAdminState.all;
+        document.getElementById("publishedCount").textContent = all.filter((item) => item.status === 1).length;
+        document.getElementById("hiddenCount").textContent = all.filter((item) => item.status === 3 || item.status === 4).length;
+        document.getElementById("deletedCount").textContent = all.filter((item) => item.status === 5).length;
+        document.getElementById("totalCount").textContent = all.length;
+      }
+
+      function renderContentTable() {
+        const state = window.contentAdminState;
+        const tableBody = document.getElementById("contentTableBody");
+        const noResults = document.getElementById("noResultsMessage");
+        const totalPages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+        state.currentPage = Math.min(Math.max(state.currentPage, 1), totalPages);
+
+        const start = (state.currentPage - 1) * state.pageSize;
+        const pageData = state.filtered.slice(start, start + state.pageSize);
+
+        if (pageData.length === 0) {
+          tableBody.innerHTML = '<tr><td colspan="7" class="empty-state">没有匹配的数据</td></tr>';
+          noResults.style.display = state.filtered.length === 0 ? "block" : "none";
+          updateContentPagination(totalPages);
+          updateSelectedCount();
+          return;
+        }
+
+        noResults.style.display = "none";
+        tableBody.innerHTML = pageData
+          .map((item) => {
+            const canHide = item.status === 1;
+            const canRestore = item.status === 3 || item.status === 4;
+            const canDelete = item.status !== 5;
+            return `
+              <tr>
+                <td>
+                  <input type="checkbox" class="row-checkbox" data-id="${item.itemId}" onchange="updateSelectedCount()">
+                  ${item.itemId}
+                </td>
+                <td><span class="tag ${item.itemType === "lost" ? "tag-lost" : "tag-found"}">${getContentTypeLabel(item.itemType)}</span></td>
+                <td>${item.itemName || "-"}</td>
+                <td>${item.username || item.userId || "-"}</td>
+                <td>${item.createdAt || item.lostFoundTime || "-"}</td>
+                <td><span class="tag ${getContentStatusClass(item.status)}">${getContentStatusLabel(item.status)}</span></td>
+                <td class="action-buttons">
+                  <button class="btn btn-view" onclick="viewContent(${item.itemId})">查看</button>
+                  ${canHide ? `<button class="btn btn-hide" onclick="toggleStatus(${item.itemId}, 'hide')">下架</button>` : ""}
+                  ${canRestore ? `<button class="btn btn-restore" onclick="toggleStatus(${item.itemId}, 'restore')">恢复</button>` : ""}
+                  ${canDelete ? `<button class="btn btn-delete" onclick="toggleStatus(${item.itemId}, 'delete')">删除</button>` : ""}
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
+
+        document.getElementById("selectAll").checked = false;
+        updateSelectedCount();
+        updateContentPagination(totalPages);
+      }
+
+      function updateContentPagination(totalPages) {
+        const buttons = document.querySelectorAll(".pagination-btn");
+        const label = document.querySelector(".pagination span");
+        if (label) {
+          label.textContent = `第 ${window.contentAdminState.currentPage} 页 / 共 ${totalPages} 页`;
+        }
+        if (buttons.length >= 2) {
+          buttons[0].disabled = window.contentAdminState.currentPage <= 1;
+          buttons[1].disabled = window.contentAdminState.currentPage >= totalPages;
+        }
+      }
+
+      function applyContentFilters() {
+        const keyword = document.getElementById("searchInput").value.trim().toLowerCase();
+        const typeFilter = document.getElementById("typeFilter").value;
+        const statusFilter = document.getElementById("statusFilter").value;
+
+        window.contentAdminState.filtered = window.contentAdminState.all.filter((item) => {
+          const matchesKeyword =
+            !keyword ||
+            (item.itemName || "").toLowerCase().includes(keyword) ||
+            String(item.username || item.userId || "").toLowerCase().includes(keyword);
+          const matchesType = typeFilter === "all" || item.itemType === typeFilter;
+          const matchesStatus =
+            statusFilter === "all" || getContentStatusLabel(item.status) === statusFilter;
+          return matchesKeyword && matchesType && matchesStatus;
+        });
+
+        window.contentAdminState.currentPage = 1;
+        renderContentTable();
+      }
+
+      function searchContent() {
+        applyContentFilters();
+      }
+
+      function viewContent(id) {
+        const item = window.contentAdminState.all.find((entry) => Number(entry.itemId) === Number(id));
+        if (!item) {
+          alert("未找到内容详情");
+          return;
+        }
+
+        alert(
+          `物品名称：${item.itemName || "-"}\n` +
+            `类型：${getContentTypeLabel(item.itemType)}\n` +
+            `发布人：${item.username || item.userId || "-"}\n` +
+            `发布时间：${item.createdAt || "-"}\n` +
+            `发生时间：${item.lostFoundTime || "-"}\n` +
+            `地点：${item.location || "-"}\n` +
+            `状态：${getContentStatusLabel(item.status)}\n` +
+            `描述：${item.description || "-"}`,
+        );
+      }
+
+      async function toggleStatus(id, action) {
+        const actionText = action === "hide" ? "下架" : action === "restore" ? "恢复" : "删除";
+        if (!confirm(`确定要${actionText}这条内容吗？`)) return;
+
+        try {
+          const res = await axios.post("http://localhost:8081/api/admin/content/updateStatus", {
+            id,
+            action,
+          });
+          if (res.data.code === 200) {
+            await loadContentData();
+            alert(`${actionText}成功`);
+          } else {
+            alert(res.data.message || `${actionText}失败`);
+          }
+        } catch (err) {
+          console.error(`${actionText}失败`, err);
+          alert(`${actionText}失败`);
+        }
+      }
+
+      async function deleteContent(id) {
+        if (!confirm("确定要彻底删除这条内容吗？")) return;
+        try {
+          await axios.delete(`http://localhost:8081/api/admin/content/${id}`);
+          await loadContentData();
+          alert("删除成功");
+        } catch (err) {
+          alert("删除失败");
+        }
+      }
+
+      function updateSelectedCount() {
+        document.getElementById("selectedCount").textContent =
+          document.querySelectorAll(".row-checkbox:checked").length;
+      }
+
+      function selectAllRows() {
+        const checked = document.getElementById("selectAll").checked;
+        document.querySelectorAll(".row-checkbox").forEach((checkbox) => {
+          checkbox.checked = checked;
+        });
+        updateSelectedCount();
+      }
+
+      async function batchAction(action) {
+        const selectedIds = Array.from(document.querySelectorAll(".row-checkbox:checked")).map((cb) =>
+          Number(cb.getAttribute("data-id")),
+        );
+
+        if (selectedIds.length === 0) {
+          alert("请先选择要操作的内容");
+          return;
+        }
+
+        const actionText = action === "hide" ? "下架" : action === "restore" ? "恢复" : "删除";
+        if (!confirm(`确定要批量${actionText}选中的 ${selectedIds.length} 条内容吗？`)) return;
+
+        try {
+          for (const id of selectedIds) {
+            await axios.post("http://localhost:8081/api/admin/content/updateStatus", { id, action });
+          }
+          await loadContentData();
+          alert(`批量${actionText}成功`);
+        } catch (err) {
+          console.error("批量操作失败", err);
+          alert(`批量${actionText}失败`);
+        }
+      }
+
+      function changePage(step) {
+        const state = window.contentAdminState;
+        const totalPages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+        const nextPage = state.currentPage + step;
+        if (nextPage < 1 || nextPage > totalPages) return;
+        state.currentPage = nextPage;
+        renderContentTable();
+      }
+    </script>
+    <script>
+      (function () {
+        var state = {
+          all: [],
+          filtered: [],
+          currentPage: 1,
+          pageSize: 10,
+          status: { PENDING: 0, APPROVED: 1, REJECTED: 2, HIDDEN: 3, CLOSED: 4, DELETED: 5 },
+          text: {
+            login: "\u8bf7\u5148\u767b\u5f55",
+            noAdmin: "\u60a8\u6ca1\u6709\u7ba1\u7406\u5458\u6743\u9650",
+            adminTag: "\u7ba1\u7406\u5458",
+            pending: "\u5f85\u5ba1\u6838",
+            approved: "\u5df2\u53d1\u5e03",
+            rejected: "\u5df2\u9a73\u56de",
+            hidden: "\u5df2\u9690\u85cf",
+            closed: "\u5df2\u4e0b\u67b6",
+            deleted: "\u5df2\u5220\u9664",
+            unknown: "\u672a\u77e5",
+            lost: "\u5bfb\u7269",
+            found: "\u62db\u9886",
+            loadFailed: "\u6570\u636e\u52a0\u8f7d\u5931\u8d25\uff0c\u8bf7\u786e\u8ba4\u540e\u7aef\u5df2\u542f\u52a8",
+            noMatch: "\u6ca1\u6709\u5339\u914d\u7684\u6570\u636e",
+            view: "\u67e5\u770b",
+            hide: "\u4e0b\u67b6",
+            restore: "\u6062\u590d",
+            remove: "\u5220\u9664",
+            operationDone: "\u64cd\u4f5c\u6210\u529f",
+            selectContent: "\u8bf7\u5148\u9009\u62e9\u8981\u64cd\u4f5c\u7684\u5185\u5bb9",
+            currentPage: "\u7b2c",
+            page: "\u9875",
+            totalPage: "\u5171",
+            noDetail: "\u672a\u627e\u5230\u5185\u5bb9\u8be6\u60c5",
+          },
+          userCache: {},
+        };
+
+        function statusLabel(value) {
+          var t = state.text;
+          var map = {};
+          map[state.status.PENDING] = t.pending;
+          map[state.status.APPROVED] = t.approved;
+          map[state.status.REJECTED] = t.rejected;
+          map[state.status.HIDDEN] = t.hidden;
+          map[state.status.CLOSED] = t.closed;
+          map[state.status.DELETED] = t.deleted;
+          return map[value] || t.unknown;
+        }
+
+        function typeLabel(value) {
+          if (value === "lost") return state.text.lost;
+          if (value === "found") return state.text.found;
+          return value || state.text.unknown;
+        }
+
+        function statusClass(value) {
+          if (value === state.status.APPROVED) return "tag-status-published";
+          if (value === state.status.HIDDEN || value === state.status.CLOSED) return "tag-status-hidden";
+          if (value === state.status.DELETED) return "tag-status-deleted";
+          if (value === state.status.REJECTED) return "tag-status-deleted";
+          return "";
+        }
+
+        async function resolveUsername(userId) {
+          if (!userId) return "-";
+          if (state.userCache[userId]) return state.userCache[userId];
+          try {
+            var res = await axios.get("http://localhost:8081/api/users/" + userId);
+            var username = res.data && res.data.username ? res.data.username : String(userId);
+            state.userCache[userId] = username;
+            return username;
+          } catch (err) {
+            return String(userId);
+          }
+        }
+
+        function updateStats() {
+          var all = state.all;
+          document.getElementById("publishedCount").textContent = all.filter(function (item) { return item.status === 1; }).length;
+          document.getElementById("hiddenCount").textContent = all.filter(function (item) { return item.status === 3 || item.status === 4; }).length;
+          document.getElementById("deletedCount").textContent = all.filter(function (item) { return item.status === 5; }).length;
+          document.getElementById("totalCount").textContent = all.length;
+        }
+
+        function updatePagination(totalPages) {
+          var buttons = document.querySelectorAll(".pagination-btn");
+          var label = document.querySelector(".pagination span");
+          if (label) {
+            label.textContent = state.text.currentPage + " " + state.currentPage + " " + state.text.page + " / " + state.text.totalPage + " " + totalPages + " " + state.text.page;
+          }
+          if (buttons.length >= 2) {
+            buttons[0].disabled = state.currentPage <= 1;
+            buttons[1].disabled = state.currentPage >= totalPages;
+          }
+        }
+
+        function renderTable() {
+          var tableBody = document.getElementById("contentTableBody");
+          var noResults = document.getElementById("noResultsMessage");
+          var totalPages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+          state.currentPage = Math.min(Math.max(state.currentPage, 1), totalPages);
+          var start = (state.currentPage - 1) * state.pageSize;
+          var pageData = state.filtered.slice(start, start + state.pageSize);
+
+          if (pageData.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="7" class="empty-state">' + state.text.noMatch + "</td></tr>";
+            noResults.style.display = state.filtered.length === 0 ? "block" : "none";
+            updatePagination(totalPages);
+            window.updateSelectedCount();
+            return;
+          }
+
+          noResults.style.display = "none";
+          tableBody.innerHTML = pageData.map(function (item) {
+            var actions = ['<button class="btn btn-view" onclick="viewContent(' + item.itemId + ')">' + state.text.view + "</button>"];
+            if (item.status === 1) actions.push('<button class="btn btn-hide" onclick="toggleStatus(' + item.itemId + ', \'hide\')">' + state.text.hide + "</button>");
+            if (item.status === 3 || item.status === 4) actions.push('<button class="btn btn-restore" onclick="toggleStatus(' + item.itemId + ', \'restore\')">' + state.text.restore + "</button>");
+            if (item.status !== 5) actions.push('<button class="btn btn-delete" onclick="toggleStatus(' + item.itemId + ', \'delete\')">' + state.text.remove + "</button>");
+            return '<tr>' +
+              '<td><input type="checkbox" class="row-checkbox" data-id="' + item.itemId + '" onchange="updateSelectedCount()">' + item.itemId + '</td>' +
+              '<td><span class="tag ' + (item.itemType === "lost" ? "tag-lost" : "tag-found") + '">' + typeLabel(item.itemType) + '</span></td>' +
+              '<td>' + (item.itemName || "-") + '</td>' +
+              '<td>' + (item.username || item.userId || "-") + '</td>' +
+              '<td>' + (item.createdAt || item.lostFoundTime || "-") + '</td>' +
+              '<td><span class="tag ' + statusClass(item.status) + '">' + statusLabel(item.status) + '</span></td>' +
+              '<td class="action-buttons">' + actions.join("") + "</td></tr>";
+          }).join("");
+
+          document.getElementById("selectAll").checked = false;
+          window.updateSelectedCount();
+          updatePagination(totalPages);
+        }
+
+        function applyFilters() {
+          var keyword = document.getElementById("searchInput").value.trim().toLowerCase();
+          var typeFilter = document.getElementById("typeFilter").value;
+          var statusFilter = document.getElementById("statusFilter").value;
+          state.filtered = state.all.filter(function (item) {
+            var matchesKeyword = !keyword || String(item.itemName || "").toLowerCase().includes(keyword) || String(item.username || item.userId || "").toLowerCase().includes(keyword);
+            var matchesType = typeFilter === "all" || item.itemType === typeFilter;
+            var matchesStatus = statusFilter === "all" || statusLabel(item.status) === statusFilter;
+            return matchesKeyword && matchesType && matchesStatus;
+          });
+          state.currentPage = 1;
+          renderTable();
+        }
+
+        window.onload = function () {
+          var isLoggedIn = localStorage.getItem("isLoggedIn");
+          var username = localStorage.getItem("username");
+          var isAdmin = localStorage.getItem("isAdmin");
+          if (isLoggedIn !== "true" || !username) {
+            alert(state.text.login);
+            window.location.href = "logIn.html";
+            return;
+          }
+          if (isAdmin !== "true") {
+            alert(state.text.noAdmin);
+            window.location.href = "home.html";
+            return;
+          }
+          document.getElementById("usernameDisplay").innerHTML = username + ' <span style="color:#ff9800; font-size:12px;">(' + state.text.adminTag + ")</span>";
+          var searchInput = document.getElementById("searchInput");
+          if (searchInput) {
+            searchInput.addEventListener("keypress", function (e) {
+              if (e.key === "Enter") window.searchContent();
+            });
+          }
+          window.loadContentData();
+        };
+
+        window.logout = function () {
+          localStorage.clear();
+          window.location.href = "logIn.html";
+        };
+
+        window.loadContentData = async function () {
+          try {
+            var res = await axios.get("http://localhost:8081/api/admin/content/list");
+            state.all = await Promise.all((res.data.data || []).map(async function (item) {
+              if (!item.username && item.userId) {
+                item.username = await resolveUsername(item.userId);
+              }
+              return item;
+            }));
+            updateStats();
+            applyFilters();
+          } catch (err) {
+            console.error("content load failed", err);
+            document.getElementById("contentTableBody").innerHTML = '<tr><td colspan="7" class="empty-state">' + state.text.loadFailed + "</td></tr>";
+          }
+        };
+
+        window.searchContent = function () { applyFilters(); };
+
+        window.viewContent = function (id) {
+          window.location.href = "detail.html?id=" + id;
+        };
+
+        window.toggleStatus = async function (id, action) {
+          if (!confirm(action + "?")) return;
+          try {
+            var res = await axios.post("http://localhost:8081/api/admin/content/updateStatus", { id: id, action: action });
+            if (res.data.code === 200) {
+              await window.loadContentData();
+              alert(state.text.operationDone);
+            } else {
+              alert(res.data.message || "failed");
+            }
+          } catch (err) {
+            console.error("content action failed", err);
+            alert("failed");
+          }
+        };
+
+        window.deleteContent = async function (id) {
+          try {
+            await axios.delete("http://localhost:8081/api/admin/content/" + id);
+            await window.loadContentData();
+            alert(state.text.operationDone);
+          } catch (err) {
+            alert("failed");
+          }
+        };
+
+        window.updateSelectedCount = function () {
+          document.getElementById("selectedCount").textContent = document.querySelectorAll(".row-checkbox:checked").length;
+        };
+
+        window.selectAllRows = function () {
+          var checked = document.getElementById("selectAll").checked;
+          document.querySelectorAll(".row-checkbox").forEach(function (checkbox) { checkbox.checked = checked; });
+          window.updateSelectedCount();
+        };
+
+        window.batchAction = async function (action) {
+          var ids = Array.from(document.querySelectorAll(".row-checkbox:checked")).map(function (cb) { return Number(cb.getAttribute("data-id")); });
+          if (!ids.length) {
+            alert(state.text.selectContent);
+            return;
+          }
+          for (var i = 0; i < ids.length; i += 1) {
+            await axios.post("http://localhost:8081/api/admin/content/updateStatus", { id: ids[i], action: action });
+          }
+          await window.loadContentData();
+          alert(state.text.operationDone);
+        };
+
+        window.changePage = function (step) {
+          var totalPages = Math.max(1, Math.ceil(state.filtered.length / state.pageSize));
+          var next = state.currentPage + step;
+          if (next < 1 || next > totalPages) return;
+          state.currentPage = next;
+          renderTable();
+        };
+      })();
     </script>
   </head>
   <body>
