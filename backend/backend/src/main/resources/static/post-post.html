@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>发布信息 - 校园寻物系统</title>
     <style>
-      /* 保留你原有的所有 CSS 样式 */
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
       }
+
       body {
         font-family: Arial, Helvetica, sans-serif;
         background-color: #90f5ddbd;
@@ -18,6 +18,7 @@
         display: flex;
         flex-direction: column;
       }
+
       .title {
         background-color: #ffffff;
         color: #549687;
@@ -28,12 +29,14 @@
         border-radius: 0 0 15px 15px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
       }
+
       .title-container {
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 0 20px;
       }
+
       .back-to-home {
         color: white;
         background-color: #549687;
@@ -47,6 +50,16 @@
         transition: all 0.3s ease;
         font-weight: 500;
       }
+
+      .back-to-home:hover {
+        background-color: #478073;
+        transform: translateY(-2px);
+      }
+
+      .title-placeholder {
+        width: 100px;
+      }
+
       .user-info {
         background-color: #549687;
         color: white;
@@ -55,6 +68,7 @@
         justify-content: space-between;
         align-items: center;
       }
+
       .logout-btn {
         background-color: #b71d1d90;
         color: white;
@@ -63,6 +77,7 @@
         border-radius: 8px;
         cursor: pointer;
       }
+
       .main-content {
         flex: 1;
         padding: 30px 20px;
@@ -70,13 +85,16 @@
         flex-direction: column;
         align-items: center;
       }
+
       .container {
         width: 100%;
         max-width: 800px;
         background-color: white;
         padding: 30px;
         border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
       }
+
       .page-title {
         text-align: center;
         color: #333;
@@ -84,20 +102,24 @@
         padding-bottom: 15px;
         border-bottom: 2px solid #549687;
       }
+
       .form-group {
         display: flex;
         flex-direction: column;
         gap: 10px;
         margin-bottom: 20px;
       }
+
       .form-group label {
         font-weight: 600;
         color: #333;
       }
+
       .form-group label.required::after {
         content: " *";
         color: #e74c3c;
       }
+
       .form-group input,
       .form-group select,
       .form-group textarea {
@@ -105,12 +127,30 @@
         border: 2px solid #e0e0e0;
         border-radius: 8px;
         width: 100%;
+        outline: none;
       }
+
+      .form-group textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+
+      .image-upload {
+        border: 2px dashed #549687;
+        padding: 20px;
+        text-align: center;
+        background: #f9fffe;
+        cursor: pointer;
+        border-radius: 10px;
+      }
+
       .btn-group {
         display: flex;
         gap: 20px;
         justify-content: center;
+        margin-top: 10px;
       }
+
       .btn {
         padding: 12px 30px;
         border: none;
@@ -119,22 +159,18 @@
         cursor: pointer;
         min-width: 150px;
       }
+
       .btn-submit {
         background-color: #549687;
         color: white;
       }
+
       .btn-reset {
         background-color: #f0f9f7;
         color: #549687;
         border: 2px solid #549687;
       }
-      .image-upload {
-        border: 2px dashed #549687;
-        padding: 20px;
-        text-align: center;
-        background: #f9fffe;
-        cursor: pointer;
-      }
+
       .page-foot {
         background-color: #549687;
         color: white;
@@ -142,139 +178,161 @@
         padding: 20px 0;
         margin-top: auto;
       }
-    </style>
 
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-<script>
-    // 定义区域对应的数据（提到外面来，让下拉框联动能生效）
-    const locationData = {
-        "图书馆": ["老图书馆", "数字图书馆", "文峰图书馆"],
-        "教学楼": ["一教", "二教", "三教", "四教", "五教", "六教", "七教", "八教", "九教"],
-        "食堂": ["中心食堂", "兴业苑食堂", "滨湖餐厅", "樱花食堂", "千喜鹤", "莘莘食堂"],
-        "宿舍区": ["宁静", "明理", "明志", "兴业", "知行"],
-        "运动场": ["风华操场", "太极操场", "灯光篮球场", "网球场", "南羽毛球场"]
-    };
-
-    // 联动函数：选了“图书馆”，第二个框出现“老图书馆”等
-    function updateSubLocations() {
-        const mainSel = document.getElementById("mainLocation").value;
-        const subSel = document.getElementById("subLocation");
-        subSel.innerHTML = '<option value="">-- 请选择具体地点 --</option>';
-
-        if (mainSel && locationData[mainSel]) {
-            locationData[mainSel].forEach((loc) => {
-                const opt = document.createElement("option");
-                opt.value = loc;
-                opt.textContent = loc;
-                subSel.appendChild(opt);
-            });
-        } else if (mainSel === "其他") {
-            const opt = document.createElement("option");
-            opt.value = "其他";
-            opt.textContent = "其他";
-            subSel.appendChild(opt);
+      @media (max-width: 768px) {
+        .btn-group {
+          flex-direction: column;
         }
-    }
 
-    window.onload = function () {
+        .btn {
+          width: 100%;
+        }
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+      let compressedImageData = "";
+
+      const locationData = {
+        图书馆: ["老图书馆", "数字图书馆", "文峰图书馆"],
+        教学楼: ["一教", "二教", "三教", "四教", "五教", "六教", "七教", "八教", "九教"],
+        食堂: ["中心食堂", "兴业苑食堂", "滨湖餐厅", "樱花食堂", "千喜鹤", "莘莘食堂"],
+        宿舍区: ["宁静", "明理", "明志", "兴业", "知行"],
+        运动场: ["风华操场", "太极操场", "灯光篮球场", "网球场", "南羽毛球场"],
+        其他: ["其他"]
+      };
+
+      function populateMainLocations() {
+        const mainSelect = document.getElementById("mainLocation");
+        if (!mainSelect) return;
+        mainSelect.innerHTML =
+          '<option value="">-- 请选择区域 --</option>' +
+          Object.keys(locationData)
+            .map((key) => `<option value="${key}">${key}</option>`)
+            .join("");
+      }
+
+      function updateSubLocations() {
+        const mainValue = document.getElementById("mainLocation").value;
+        const subSelect = document.getElementById("subLocation");
+        if (!subSelect) return;
+        subSelect.innerHTML = '<option value="">-- 请选择具体地点 --</option>';
+        if (!mainValue || !locationData[mainValue]) return;
+        locationData[mainValue].forEach((location) => {
+          const option = document.createElement("option");
+          option.value = location;
+          option.textContent = location;
+          subSelect.appendChild(option);
+        });
+      }
+
+      async function handlePostSubmit(event) {
+        if (event) event.preventDefault();
+
+        const currentUserId = localStorage.getItem("userId");
+        if (!currentUserId || currentUserId === "undefined") {
+          alert("登录信息缺失，请重新登录");
+          window.location.href = "logIn.html";
+          return false;
+        }
+
+        const type = document.getElementById("infoType").value;
+        const name = document.getElementById("itemName").value.trim();
+        const mainLoc = document.getElementById("mainLocation").value;
+        const subLoc = document.getElementById("subLocation").value;
+        const desc = document.getElementById("itemDesc").value.trim();
+        const contact = document.getElementById("contact").value.trim();
+        const time = document.getElementById("occurTime").value;
+
+        if (!name || !mainLoc || !subLoc || !contact || !type) {
+          alert("请完整填写名称、区域、具体地点、联系方式和信息类型");
+          return false;
+        }
+
+        const postData = {
+          item_name: name,
+          item_type: type,
+          location: `${mainLoc} - ${subLoc}`,
+          description: `${desc} (联系方式: ${contact})`,
+          lost_found_time: time,
+          category_id: 1,
+          user_id: parseInt(currentUserId, 10),
+          image_url: compressedImageData
+        };
+
+        try {
+          const res = await axios.post("http://localhost:8081/api/items", postData);
+          if (res.data.code === 200) {
+            alert("发布成功");
+            window.location.href = "home.html";
+          } else {
+            alert("发布失败：" + (res.data.message || "未知错误"));
+          }
+        } catch (error) {
+          console.error("提交出错:", error);
+          alert("服务器响应失败，请检查后端控制台日志");
+        }
+        return false;
+      }
+
+      function handleImageUpload(event) {
+        const preview = document.getElementById("imagePreview");
+        const file = event.target.files && event.target.files[0];
+        if (!file) {
+          compressedImageData = "";
+          preview.innerHTML = "";
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const img = new Image();
+          img.onload = function () {
+            const maxWidth = 960;
+            const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            compressedImageData = canvas.toDataURL("image/jpeg", 0.75);
+            preview.innerHTML = `<div style="width: 100px"><img src="${compressedImageData}" style="width:100%; border-radius:8px;" alt="预览图"></div>`;
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function logout() {
+        localStorage.clear();
+        window.location.href = "logIn.html";
+      }
+
+      window.onload = function () {
         const isLoggedIn = localStorage.getItem("isLoggedIn");
         const username = localStorage.getItem("username");
         if (isLoggedIn !== "true" || !username) {
-            alert("请先登录");
-            window.location.href = "logIn.html";
-            return;
+          alert("请先登录");
+          window.location.href = "logIn.html";
+          return;
         }
 
         document.getElementById("usernameDisplay").textContent = username;
+        populateMainLocations();
 
-        // 设置默认时间
         const now = new Date();
         const offset = now.getTimezoneOffset() * 60000;
         const localISOTime = new Date(now - offset).toISOString().slice(0, 16);
         document.getElementById("occurTime").value = localISOTime;
-    };
-
-    // --- 核心：提交到后端 ---
-    async function handlePostSubmit(event) {
-    if (event) event.preventDefault();
-
-    const currentUserId = localStorage.getItem("userId");
-    // 增加一个额外的检查：防止 userId 是字符串 "undefined" 或 null
-    if (!currentUserId || currentUserId === "undefined") {
-        alert("登录信息缺失，请重新登录");
-        window.location.href = "logIn.html";
-        return false;
-    }
-
-    // 获取表单值
-    const type = document.getElementById("infoType").value;
-    const name = document.getElementById("itemName").value;
-    const mainLoc = document.getElementById("mainLocation").value;
-    const subLoc = document.getElementById("subLocation").value;
-    const desc = document.getElementById("itemDesc").value;
-    const contact = document.getElementById("contact").value;
-    const time = document.getElementById("occurTime").value;
-
-    // 必填项校验
-    if (!name || !subLoc || !contact || !type) {
-        alert("请完整填写：名称、地点、联系方式和信息类型");
-        return false;
-    }
-
-    // 构造发送给后端的数据对象
-    const postData = {
-        item_name: name,
-        item_type: type, // 确保后端 SQL 里的 item_type 接收的是 'lost' 或 'found'
-        location: mainLoc + " - " + subLoc,
-        description: desc + " (联系方式: " + contact + ")",
-        lost_found_time: time,
-        category_id: 1, // 暂时硬编码分类为1
-        user_id: parseInt(currentUserId) // 强转为整数，防止后端 getInt 时出错
-    };
-
-    try {
-        // 注意：因为你在 Controller 类上加了 @RequestMapping("/api")
-        // 所以这里的路径应该是 http://localhost:8081/api/items
-        const res = await axios.post("http://localhost:8081/api/items", postData);
-        
-        // 根据你后端的返回逻辑判断（假设后端成功返回 code: 200）
-        if (res.data.code === 200) {
-            alert("发布成功！");
-            window.location.href = "home.html";
-        } else {
-            // 如果后端报错（比如 SQL 报错），这里能抓到后端返回的 message
-            alert("发布失败：" + (res.data.message || "未知错误"));
-        }
-    } catch (error) {
-        console.error("提交出错:", error);
-        // 如果报 404，检查路径；如果报 500，去 Eclipse Console 看 SQL 报错
-        alert("服务器响应失败，请检查后端控制台日志");
-    }
-    return false;
-}
-    function logout() {
-        localStorage.clear();
-        window.location.href = "logIn.html";
-    }
-
-    function handleImageUpload(event) {
-        const preview = document.getElementById("imagePreview");
-        if (event.target.files && event.target.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                preview.innerHTML = `<div style="width: 100px"><img src="${e.target.result}" style="width:100%; border-radius:8px;"></div>`;
-            };
-            reader.readAsDataURL(event.target.files[0]);
-        }
-    }
-</script>
+      };
+    </script>
   </head>
   <body>
     <div class="title">
       <div class="title-container">
         <a href="home.html" class="back-to-home">← 返回主页</a>
         <h1>校园寻物系统</h1>
-        <div style="width: 100px"></div>
+        <div class="title-placeholder"></div>
       </div>
     </div>
 
@@ -299,12 +357,7 @@
 
           <div class="form-group">
             <label for="itemName" class="required">物品名称</label>
-            <input
-              type="text"
-              id="itemName"
-              placeholder="例如：校园卡、手机等"
-              required
-            />
+            <input type="text" id="itemName" placeholder="例如：校园卡、手机、钥匙" required />
           </div>
 
           <div class="form-group">
@@ -313,20 +366,12 @@
           </div>
 
           <div class="form-group">
-            <label class="required">区域</label>
-            <select id="mainLocation" onchange="updateSubLocations()" required>
-              <option value="">-- 请选择区域 --</option>
-              <option value="图书馆">图书馆</option>
-              <option value="教学楼">教学楼</option>
-              <option value="食堂">食堂</option>
-              <option value="宿舍区">宿舍区</option>
-              <option value="运动场">运动场</option>
-              <option value="其他">其他</option>
-            </select>
+            <label for="mainLocation" class="required">区域</label>
+            <select id="mainLocation" onchange="updateSubLocations()" required></select>
           </div>
 
           <div class="form-group">
-            <label class="required">具体地点</label>
+            <label for="subLocation" class="required">具体地点</label>
             <select id="subLocation" required>
               <option value="">-- 请先选择区域 --</option>
             </select>
@@ -334,43 +379,22 @@
 
           <div class="form-group">
             <label for="itemDesc" class="required">物品描述</label>
-            <textarea
-              id="itemDesc"
-              placeholder="详细描述物品特征..."
-              required
-            ></textarea>
+            <textarea id="itemDesc" placeholder="请详细描述物品特征，例如颜色、品牌、外观等" required></textarea>
           </div>
 
           <div class="form-group">
             <label>上传图片（可选）</label>
-            <div
-              class="image-upload"
-              onclick="document.getElementById('imageInput').click()"
-            >
-              <div style="font-size: 30px">📎</div>
+            <div class="image-upload" onclick="document.getElementById('imageInput').click()">
+              <div style="font-size: 30px;">📸</div>
               点击上传图片
-              <input
-                type="file"
-                id="imageInput"
-                hidden
-                accept="image/*"
-                onchange="handleImageUpload(event)"
-              />
+              <input type="file" id="imageInput" hidden accept="image/*" onchange="handleImageUpload(event)" />
             </div>
-            <div
-              id="imagePreview"
-              style="display: flex; gap: 10px; margin-top: 10px"
-            ></div>
+            <div id="imagePreview" style="display: flex; gap: 10px; margin-top: 10px;"></div>
           </div>
 
           <div class="form-group">
             <label for="contact" class="required">联系方式</label>
-            <input
-              type="text"
-              id="contact"
-              placeholder="手机号、微信号等"
-              required
-            />
+            <input type="text" id="contact" placeholder="请输入手机号、微信号等联系方式" required />
           </div>
 
           <div class="btn-group">
@@ -380,31 +404,7 @@
         </form>
       </div>
     </div>
-<div id="reportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center;">
-    <div style="background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-        <h3 style="margin-bottom: 15px; color: #333; border-bottom: 2px solid #549687; padding-bottom: 10px;">举报帖子</h3>
-        
-        <div style="margin-bottom: 15px;">
-            <label style="display: block; margin-bottom: 5px; font-weight: bold;">举报原因</label>
-            <select id="reportReason" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
-                <option value="信息虚假">信息虚假 / 已失效</option>
-                <option value="非法内容">色情 / 暴力 / 违法内容</option>
-                <option value="广告骚扰">广告内容 / 垃圾信息</option>
-                <option value="其他">其他原因</option>
-            </select>
-        </div>
 
-        <div style="margin-bottom: 20px;">
-            <label style="display: block; margin-bottom: 5px; font-weight: bold;">详细说明</label>
-            <textarea id="reportDesc" placeholder="请补充具体违规情况..." style="width: 100%; height: 100px; padding: 10px; border: 1px solid #ddd; border-radius: 6px; resize: none;"></textarea>
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-            <button onclick="submitReport()" style="flex: 1; background: #549687; color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold;">提交举报</button>
-            <button onclick="closeReportModal()" style="flex: 1; background: #eee; color: #666; border: none; padding: 12px; border-radius: 8px; cursor: pointer;">取消</button>
-        </div>
-    </div>
-</div>
     <div class="page-foot">
       <p>版权所有 © 2026 校园寻物系统</p>
     </div>

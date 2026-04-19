@@ -1,0 +1,2 @@
+ALTER TABLE items
+MODIFY COLUMN image_url MEDIUMTEXT NULL COMMENT '物品图片（支持 Base64 压缩图）';

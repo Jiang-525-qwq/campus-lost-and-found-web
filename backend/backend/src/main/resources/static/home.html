@@ -60,6 +60,8 @@
         width: 100%;
       }
       .item-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+      .item-thumb-wrap { width: 100%; height: 180px; margin-bottom: 14px; overflow: hidden; border-radius: 10px; background: #f4f6f8; }
+      .item-thumb { width: 100%; height: 100%; object-fit: cover; display: block; }
       #item-list {
         width: 80%;
         margin: 0 auto;
@@ -214,6 +216,7 @@
     	            // 只有通过上面所有 return 的才会被渲染
     	            listContainer.innerHTML += `
     	              <div class="item-card" onclick="location.href='detail.html?id=${item.item_id}'">
+    	                <div class="item-thumb-wrap"><img class="item-thumb" src="${item.image_url || 'blank-image.svg'}" alt="${item.item_name || '帖子图片'}"></div>
     	                <div class="item-header">
     	                  <h3>${item.item_name}</h3>
     	                  <span class="tag ${item.item_type === 'lost' ? 'tag-lost' : 'tag-found'}">
@@ -394,6 +397,7 @@
             listContainer.innerHTML = filtered
               .map((item) => `
                 <div class="item-card" onclick="location.href='detail.html?id=${item.item_id}'">
+                  <div class="item-thumb-wrap"><img class="item-thumb" src="${item.image_url || 'blank-image.svg'}" alt="${item.item_name || '帖子图片'}"></div>
                   <div class="item-header">
                     <h3>${item.item_name}</h3>
                     <span class="tag ${item.item_type === "lost" ? "tag-lost" : "tag-found"}">
@@ -536,6 +540,7 @@
 
           listContainer.innerHTML = pageItems.map((item) => `
             <div class="item-card" onclick="location.href='detail.html?id=${item.item_id}'">
+              <div class="item-thumb-wrap"><img class="item-thumb" src="${item.image_url || 'blank-image.svg'}" alt="${item.item_name || '帖子图片'}"></div>
               <div class="item-header">
                 <h3>${item.item_name}</h3>
                 <span class="tag ${item.item_type === "lost" ? "tag-lost" : "tag-found"}">
