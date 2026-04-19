@@ -24,6 +24,9 @@ import com.campus.model.entity.Report;
 @CrossOrigin
 public class ReportController {
     private static final int ITEM_STATUS_CLOSED = 4;
+    private static final String ACTION_TAKEDOWN = "takedown";
+    private static final String ACTION_REJECT = "reject";
+    private static final String ACTION_PROCESSING = "processing";
     private static final String STATUS_PENDING = "待处理";
     private static final String STATUS_PROCESSING = "处理中";
     private static final String STATUS_RESOLVED = "已处理";
@@ -66,13 +69,15 @@ public class ReportController {
                 return result;
             }
 
+            Integer reportedUserId = resolveReportedUserId(report);
+
             String nextStatus;
-            if ("takedown".equals(action)) {
+            if (ACTION_TAKEDOWN.equals(action)) {
                 jdbcTemplate.update("UPDATE items SET status = ? WHERE item_id = ?", ITEM_STATUS_CLOSED, report.getItemId());
                 nextStatus = STATUS_RESOLVED;
-            } else if ("reject".equals(action)) {
+            } else if (ACTION_REJECT.equals(action)) {
                 nextStatus = STATUS_REJECTED;
-            } else if ("processing".equals(action)) {
+            } else if (ACTION_PROCESSING.equals(action)) {
                 nextStatus = STATUS_PROCESSING;
             } else {
                 nextStatus = STATUS_RESOLVED;
@@ -80,6 +85,22 @@ public class ReportController {
 
             String mergedDescription = mergeDescription(report.getDescription(), note, action);
             reportMapper.updateReportHandling(id, mergedDescription, nextStatus);
+            createInboxMessage(
+                    report.getReporterId(),
+                    report.getReportId(),
+                    report.getItemId(),
+                    "reporter",
+                    buildReporterTitle(action),
+                    buildReporterContent(report, note, action));
+            if (reportedUserId != null && !reportedUserId.equals(report.getReporterId())) {
+                createInboxMessage(
+                        reportedUserId,
+                        report.getReportId(),
+                        report.getItemId(),
+                        "reported",
+                        buildReportedTitle(action),
+                        buildReportedContent(report, note, action));
+            }
 
             result.put("code", 200);
             result.put("message", "Handled");
@@ -126,9 +147,9 @@ public class ReportController {
             if (sb.length() > 0) {
                 sb.append("\n\n");
             }
-            if ("takedown".equals(action)) {
+            if (ACTION_TAKEDOWN.equals(action)) {
                 sb.append("[处理备注] ");
-            } else if ("reject".equals(action)) {
+            } else if (ACTION_REJECT.equals(action)) {
                 sb.append("[驳回原因] ");
             } else {
                 sb.append("[备注] ");
@@ -136,5 +157,99 @@ public class ReportController {
             sb.append(note);
         }
         return sb.toString();
+    }
+
+    private Integer resolveReportedUserId(Report report) {
+        if (report.getReportedUserId() != null && report.getReportedUserId() != 0) {
+            return report.getReportedUserId();
+        }
+        try {
+            return jdbcTemplate.queryForObject(
+                    "SELECT user_id FROM items WHERE item_id = ?",
+                    Integer.class,
+                    report.getItemId());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void ensureInboxTable() {
+        jdbcTemplate.execute(
+                "CREATE TABLE IF NOT EXISTS inbox_messages (" +
+                        "message_id INT PRIMARY KEY AUTO_INCREMENT, " +
+                        "user_id INT NOT NULL, " +
+                        "report_id INT NULL, " +
+                        "item_id INT NULL, " +
+                        "title VARCHAR(120) NOT NULL, " +
+                        "content TEXT NOT NULL, " +
+                        "recipient_type VARCHAR(20) NOT NULL, " +
+                        "is_read TINYINT(1) NOT NULL DEFAULT 0, " +
+                        "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP" +
+                        ")");
+    }
+
+    private void createInboxMessage(Integer userId, Integer reportId, Integer itemId, String recipientType, String title, String content) {
+        if (userId == null || userId == 0) {
+            return;
+        }
+        ensureInboxTable();
+        jdbcTemplate.update(
+                "INSERT INTO inbox_messages (user_id, report_id, item_id, title, content, recipient_type) VALUES (?, ?, ?, ?, ?, ?)",
+                userId,
+                reportId,
+                itemId,
+                title,
+                content,
+                recipientType);
+    }
+
+    private String buildReporterTitle(String action) {
+        if (ACTION_TAKEDOWN.equals(action)) {
+            return "\u4e3e\u62a5\u5904\u7406\u7ed3\u679c\uff1a\u5df2\u91c7\u7eb3";
+        }
+        if (ACTION_REJECT.equals(action)) {
+            return "\u4e3e\u62a5\u5904\u7406\u7ed3\u679c\uff1a\u5df2\u9a73\u56de";
+        }
+        return "\u4e3e\u62a5\u5904\u7406\u8fdb\u5ea6\u901a\u77e5";
+    }
+
+    private String buildReportedTitle(String action) {
+        if (ACTION_TAKEDOWN.equals(action)) {
+            return "\u5e16\u5b50\u4e3e\u62a5\u5904\u7406\u7ed3\u679c\uff1a\u5df2\u4e0b\u67b6";
+        }
+        if (ACTION_REJECT.equals(action)) {
+            return "\u5e16\u5b50\u4e3e\u62a5\u5904\u7406\u7ed3\u679c\uff1a\u5df2\u9a73\u56de";
+        }
+        return "\u5e16\u5b50\u4e3e\u62a5\u5904\u7406\u8fdb\u5ea6\u901a\u77e5";
+    }
+
+    private String buildReporterContent(Report report, String note, String action) {
+        String itemName = report.getItemName() != null ? report.getItemName() : ("#" + report.getItemId());
+        String actionText = ACTION_TAKEDOWN.equals(action)
+                ? "\u5df2\u91c7\u7eb3\u60a8\u7684\u4e3e\u62a5\uff0c\u5e16\u5b50\u5df2\u4e0b\u67b6"
+                : ACTION_REJECT.equals(action)
+                ? "\u5df2\u9a73\u56de\u60a8\u7684\u4e3e\u62a5"
+                : "\u60a8\u7684\u4e3e\u62a5\u6b63\u5728\u5904\u7406\u4e2d";
+        return "\u5e16\u5b50\uff1a" + itemName +
+                "\n\u4e3e\u62a5\u7c7b\u578b\uff1a" + safeText(report.getReason()) +
+                "\n\u5904\u7406\u7ed3\u679c\uff1a" + actionText +
+                "\n\u7ba1\u7406\u5458\u8bf4\u660e\uff1a" + safeText(note);
+    }
+
+    private String buildReportedContent(Report report, String note, String action) {
+        String itemName = report.getItemName() != null ? report.getItemName() : ("#" + report.getItemId());
+        String actionText = ACTION_TAKEDOWN.equals(action)
+                ? "\u60a8\u7684\u5e16\u5b50\u5df2\u88ab\u4e0b\u67b6"
+                : ACTION_REJECT.equals(action)
+                ? "\u9488\u5bf9\u60a8\u5e16\u5b50\u7684\u4e3e\u62a5\u5df2\u88ab\u9a73\u56de"
+                : "\u9488\u5bf9\u60a8\u5e16\u5b50\u7684\u4e3e\u62a5\u6b63\u5728\u5904\u7406\u4e2d";
+        return "\u5e16\u5b50\uff1a" + itemName +
+                "\n\u4e3e\u62a5\u7c7b\u578b\uff1a" + safeText(report.getReason()) +
+                "\n\u5904\u7406\u7ed3\u679c\uff1a" + actionText +
+                "\n\u7ba1\u7406\u5458\u8bf4\u660e\uff1a" + safeText(note);
+    }
+
+    private String safeText(String value) {
+        return (value == null || value.trim().isEmpty()) ? "-" : value.trim();
     }
 }

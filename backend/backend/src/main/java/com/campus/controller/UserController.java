@@ -98,6 +98,16 @@ public class UserController {
         }
     }
 
+    @GetMapping("/users/{userId}/messages")
+    public List<Map<String, Object>> getInboxMessages(@PathVariable Integer userId) {
+        ensureInboxTable();
+        return jdbcTemplate.queryForList(
+                "SELECT message_id AS messageId, report_id AS reportId, item_id AS itemId, " +
+                        "title, content, recipient_type AS recipientType, created_at AS createdAt, is_read AS isRead " +
+                        "FROM inbox_messages WHERE user_id = ? ORDER BY message_id DESC",
+                userId);
+    }
+
     @PutMapping("/users/{userId}")
     public Map<String, Object> updateUserProfile(
             @PathVariable Integer userId,
@@ -126,5 +136,20 @@ public class UserController {
         response.put("code", 200);
         response.put("message", "Banned");
         return response;
+    }
+
+    private void ensureInboxTable() {
+        jdbcTemplate.execute(
+                "CREATE TABLE IF NOT EXISTS inbox_messages (" +
+                        "message_id INT PRIMARY KEY AUTO_INCREMENT, " +
+                        "user_id INT NOT NULL, " +
+                        "report_id INT NULL, " +
+                        "item_id INT NULL, " +
+                        "title VARCHAR(120) NOT NULL, " +
+                        "content TEXT NOT NULL, " +
+                        "recipient_type VARCHAR(20) NOT NULL, " +
+                        "is_read TINYINT(1) NOT NULL DEFAULT 0, " +
+                        "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP" +
+                        ")");
     }
 }

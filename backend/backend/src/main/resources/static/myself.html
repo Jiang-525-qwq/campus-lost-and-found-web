@@ -949,7 +949,7 @@ function logout() {
     closed: "\u5df2\u4e0b\u67b6",
     deleted: "\u5df2\u5220\u9664",
   };
-  const state = { userId: null, profile: null, isOwnProfile: true, currentUsername: "", isAdmin: false };
+  const state = { userId: null, profile: null, isOwnProfile: true, currentUsername: "", isAdmin: false, messages: [] };
 
   async function loadCurrentLoginUser(currentUserId) {
     try {
@@ -1042,6 +1042,31 @@ function logout() {
     }
   }
 
+  async function renderInbox() {
+    const container = document.getElementById("inboxList");
+    if (!container) return;
+    try {
+      const res = await axios.get(`http://localhost:8081/api/users/${state.userId}/messages`);
+      state.messages = res.data || [];
+      if (!state.messages.length) {
+        container.innerHTML = '<div class="empty-state">\u6682\u65f6\u6ca1\u6709\u6536\u5230\u7ad9\u5185\u4fe1</div>';
+        return;
+      }
+      container.innerHTML = state.messages.map((message) => {
+        const recipientTag = message.recipientType === "reporter" ? "\u4e3e\u62a5\u4eba\u6536\u4ef6" : "\u88ab\u4e3e\u62a5\u4eba\u6536\u4ef6";
+        return `<div class="publish-item">
+          <h3>${message.title || "-"}</h3>
+          <p><span class="item-tag">${recipientTag}</span></p>
+          <p class="post-info">${message.createdAt || "-"}</p>
+          <p style="white-space: pre-line; color: #444; line-height: 1.7;">${message.content || "-"}</p>
+        </div>`;
+      }).join("");
+    } catch (err) {
+      console.error("inbox load failed", err);
+      container.innerHTML = '<div class="empty-state">load failed</div>';
+    }
+  }
+
   window.onload = async function () {
     const isLoggedIn = localStorage.getItem("isLoggedIn");
     const username = localStorage.getItem("username");
@@ -1071,13 +1096,18 @@ function logout() {
     if (legacyEditUsernameBtn) legacyEditUsernameBtn.remove();
     await loadProfile();
     await renderPosts();
+    await renderInbox();
     if (!state.isOwnProfile) {
       const infoBtnGroup = document.querySelector(".info-btn-group");
+      const inboxTab = document.querySelector('[data-target="inboxSection"]');
       const passwordTab = document.querySelector('[data-target="passwordSection"]');
       const adminTab = document.getElementById("adminTab");
       const adminSection = document.getElementById("adminSection");
+      const inboxSection = document.getElementById("inboxSection");
       const passwordSection = document.getElementById("passwordSection");
       if (infoBtnGroup) infoBtnGroup.style.display = "none";
+      if (inboxTab) inboxTab.style.display = "none";
+      if (inboxSection) inboxSection.style.display = "none";
       if (passwordTab) passwordTab.style.display = "none";
       if (passwordSection) passwordSection.style.display = "none";
       if (adminTab) adminTab.style.display = "none";
@@ -1214,6 +1244,7 @@ function logout() {
 
         <div class="tab-nav">
           <div class="tab-item active" data-target="myPosts">我的发布</div>
+          <div class="tab-item" data-target="inboxSection">收信箱</div>
           <div class="tab-item" data-target="passwordSection">修改密码</div>
           <div class="tab-item" data-target="adminSection" id="adminTab" style="display:none;">管理员功能</div>
         </div>
@@ -1222,6 +1253,10 @@ function logout() {
           <div id="publishList">
             <!-- 帖子列表将由JavaScript动态生成 -->
           </div>
+        </div>
+
+        <div id="inboxSection" class="content-section publish-list">
+          <div id="inboxList"></div>
         </div>
 
         <div id="passwordSection" class="content-section password-form">

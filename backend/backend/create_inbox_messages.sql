@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS inbox_messages (
+  message_id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  report_id INT NULL,
+  item_id INT NULL,
+  title VARCHAR(120) NOT NULL,
+  content TEXT NOT NULL,
+  recipient_type VARCHAR(20) NOT NULL,
+  is_read TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

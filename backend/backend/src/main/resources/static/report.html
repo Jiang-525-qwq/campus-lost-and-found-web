@@ -1173,7 +1173,25 @@
         window.viewReport = function (reportId) {
           var report = reportById(reportId);
           if (!report) return;
-          window.location.href = "detail.html?id=" + report.itemId;
+          document.getElementById("modalContent").innerHTML =
+            '<div class="modal-header">' +
+              '<h3 class="modal-title">\u4e3e\u62a5\u5b58\u6863 #' + report.reportId + '</h3>' +
+              '<button class="modal-close" onclick="closeHandleModal()">&times;</button>' +
+            '</div>' +
+            '<div class="modal-body">' +
+              '<div style="margin-bottom:12px;"><strong>\u4e3e\u62a5\u4eba\uff1a</strong>' + (report.reporterName || "-") + '</div>' +
+              '<div style="margin-bottom:12px;"><strong>\u88ab\u4e3e\u62a5\u7528\u6237\uff1a</strong>' + (report.reportedUsername || "-") + '</div>' +
+              '<div style="margin-bottom:12px;"><strong>\u5e16\u5b50\uff1a</strong>' + (report.itemName || "-") + '</div>' +
+              '<div style="margin-bottom:12px;"><strong>\u4e3e\u62a5\u7c7b\u578b\uff1a</strong>' + (report.reason || "-") + '</div>' +
+              '<div style="margin-bottom:12px;"><strong>\u5904\u7406\u72b6\u6001\uff1a</strong>' + (report.status || "-") + '</div>' +
+              '<div style="margin-bottom:12px;"><strong>\u4e3e\u62a5\u65f6\u95f4\uff1a</strong>' + (report.createdAt || "-") + '</div>' +
+              '<div style="margin-bottom:12px;"><strong>\u5904\u7406\u5b58\u6863\uff1a</strong><div style="padding:10px;background:#f7f7f7;border-radius:6px;margin-top:6px;white-space:pre-line;">' + (report.description || "-") + '</div></div>' +
+            '</div>' +
+            '<div class="modal-footer" style="display:flex;gap:10px;">' +
+              '<button class="btn-small btn-view" style="flex:1;" onclick="window.location.href=\'detail.html?id=' + report.itemId + '\'">\u67e5\u770b\u5e16\u5b50</button>' +
+              '<button class="btn-small btn-view" style="flex:1;" onclick="closeHandleModal()">\u5173\u95ed</button>' +
+            '</div>';
+          document.getElementById("reportModal").classList.add("active");
         };
 
         window.openHandleModal = function (reportId) {
@@ -1449,7 +1467,26 @@
         window.viewReport = function (reportId) {
           const report = state.reports.find((entry) => Number(entry.reportId) === Number(reportId));
           if (!report) return;
-          window.location.href = `detail.html?id=${report.itemId}`;
+          document.getElementById("modalContent").innerHTML = `
+            <div class="modal-header">
+              <h3 class="modal-title">举报存档 #${report.reportId}</h3>
+              <button class="modal-close" onclick="closeHandleModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div style="margin-bottom:12px;"><strong>举报人：</strong>${report.reporterName || "-"}</div>
+              <div style="margin-bottom:12px;"><strong>被举报用户：</strong>${report.reportedUsername || "-"}</div>
+              <div style="margin-bottom:12px;"><strong>帖子：</strong>${report.itemName || "-"}</div>
+              <div style="margin-bottom:12px;"><strong>举报类型：</strong>${report.reason || "-"}</div>
+              <div style="margin-bottom:12px;"><strong>处理状态：</strong>${report.status || "-"}</div>
+              <div style="margin-bottom:12px;"><strong>举报时间：</strong>${report.createdAt || "-"}</div>
+              <div style="margin-bottom:12px;"><strong>处理存档：</strong><div style="padding:10px;background:#f7f7f7;border-radius:6px;margin-top:6px;white-space:pre-line;">${report.description || "-"}</div></div>
+            </div>
+            <div class="modal-footer" style="display:flex;gap:10px;">
+              <button class="btn-small btn-view" style="flex:1;" onclick="window.location.href='detail.html?id=${report.itemId}'">查看帖子</button>
+              <button class="btn-small btn-view" style="flex:1;" onclick="closeHandleModal()">关闭</button>
+            </div>
+          `;
+          document.getElementById("reportModal").classList.add("active");
         };
 
         window.openHandleModal = function (reportId) {
