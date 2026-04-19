@@ -27,10 +27,10 @@ public class ReportController {
     private static final String ACTION_TAKEDOWN = "takedown";
     private static final String ACTION_REJECT = "reject";
     private static final String ACTION_PROCESSING = "processing";
-    private static final String STATUS_PENDING = "待处理";
-    private static final String STATUS_PROCESSING = "处理中";
-    private static final String STATUS_RESOLVED = "已处理";
-    private static final String STATUS_REJECTED = "已驳回";
+    private static final String STATUS_PENDING = "\u5f85\u5904\u7406";
+    private static final String STATUS_PROCESSING = "\u5904\u7406\u4e2d";
+    private static final String STATUS_RESOLVED = "\u5df2\u5904\u7406";
+    private static final String STATUS_REJECTED = "\u5df2\u9a73\u56de";
 
     @Autowired
     private ReportMapper reportMapper;
@@ -148,11 +148,11 @@ public class ReportController {
                 sb.append("\n\n");
             }
             if (ACTION_TAKEDOWN.equals(action)) {
-                sb.append("[处理备注] ");
+                sb.append("[\u5904\u7406\u5907\u6ce8] ");
             } else if (ACTION_REJECT.equals(action)) {
-                sb.append("[驳回原因] ");
+                sb.append("[\u9a73\u56de\u539f\u56e0] ");
             } else {
-                sb.append("[备注] ");
+                sb.append("[\u5907\u6ce8] ");
             }
             sb.append(note);
         }

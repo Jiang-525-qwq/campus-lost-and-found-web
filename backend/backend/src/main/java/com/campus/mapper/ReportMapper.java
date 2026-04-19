@@ -33,6 +33,6 @@ public interface ReportMapper {
                              @Param("status") String status);
 
     @Insert("INSERT INTO reports (item_id, reporter_id, reason, description, status, created_at, reported_user_id) " +
-            "VALUES (#{itemId}, #{reporterId}, #{reason}, #{description}, '待处理', CURRENT_TIME(), #{reportedUserId})")
+            "VALUES (#{itemId}, #{reporterId}, #{reason}, #{description}, '\u5f85\u5904\u7406', CURRENT_TIME(), #{reportedUserId})")
     int insertReport(Report report);
 }

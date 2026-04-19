@@ -596,124 +596,139 @@
         }
       }
     </style>
-   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-        // 1. 初始化数据
-        const urlParams = new URLSearchParams(window.location.search);
-        const itemId = urlParams.get('id'); 
+      // 1. 初始化数据
+      const urlParams = new URLSearchParams(window.location.search);
+      const itemId = urlParams.get("id");
 
-        window.onload = function () {
-            if (!itemId) {
-                alert("未找到物品ID");
-                window.location.href = "home.html";
-                return;
-            }
-            const username = localStorage.getItem("username") || "游客";
-            document.getElementById("usernameDisplay").textContent = username;
-            
-            loadItemDetail();
-            loadComments();
-        };
-
-        // 2. 加载详情 (端口统一 8081)
-        async function loadItemDetail() {
-            try {
-                const res = await axios.get(`http://localhost:8081/api/items/${itemId}`);
-                const item = res.data;
-                document.querySelector(".item-name").innerText = item.item_name;
-                document.querySelector(".item-desc").innerText = item.description;
-                
-                const infoValues = document.querySelectorAll(".info-value");
-                infoValues[0].innerText = item.location;
-                infoValues[1].innerText = item.lost_found_time;
-                infoValues[2].innerText = item.create_time || "刚刚";
-                infoValues[3].innerText = "见描述";
-
-                const badge = document.querySelector(".badge-lost");
-                if(item.item_type === 'found') {
-                    badge.innerText = "招领启事";
-                    badge.className = "badge-found";
-                } else {
-                    badge.innerText = "寻物启事";
-                    badge.className = "badge-lost";
-                }
-            } catch (err) {
-                console.error("加载详情失败", err);
-            }
+      window.onload = function () {
+        if (!itemId) {
+          alert("未找到物品ID");
+          window.location.href = "home.html";
+          return;
         }
+        const username = localStorage.getItem("username") || "游客";
+        document.getElementById("usernameDisplay").textContent = username;
 
-        // 3. 评论逻辑
-        async function loadComments() {
-            try {
-                const res = await axios.get(`http://localhost:8081/api/comments?itemId=${itemId}`);
-                const list = document.getElementById("commentsList");
-                list.innerHTML = res.data.map(c => `
+        loadItemDetail();
+        loadComments();
+      };
+
+      // 2. 加载详情 (端口统一 8081)
+      async function loadItemDetail() {
+        try {
+          const res = await axios.get(
+            `http://localhost:8081/api/items/${itemId}`,
+          );
+          const item = res.data;
+          document.querySelector(".item-name").innerText = item.item_name;
+          document.querySelector(".item-desc").innerText = item.description;
+
+          const infoValues = document.querySelectorAll(".info-value");
+          infoValues[0].innerText = item.location;
+          infoValues[1].innerText = item.lost_found_time;
+          infoValues[2].innerText = item.create_time || "刚刚";
+          infoValues[3].innerText = "见描述";
+
+          const badge = document.querySelector(".badge-lost");
+          if (item.item_type === "found") {
+            badge.innerText = "招领启事";
+            badge.className = "badge-found";
+          } else {
+            badge.innerText = "寻物启事";
+            badge.className = "badge-lost";
+          }
+        } catch (err) {
+          console.error("加载详情失败", err);
+        }
+      }
+
+      // 3. 评论逻辑
+      async function loadComments() {
+        try {
+          const res = await axios.get(
+            `http://localhost:8081/api/comments?itemId=${itemId}`,
+          );
+          const list = document.getElementById("commentsList");
+          list.innerHTML = res.data
+            .map(
+              (c) => `
                     <div style="border-bottom: 1px solid #eee; padding: 10px 0;">
                         <strong>${c.username}</strong> <small style="color: #999;">${c.create_time}</small>
                         <p>${c.content}</p>
                     </div>
-                `).join('');
-            } catch (err) { console.error(err); }
+                `,
+            )
+            .join("");
+        } catch (err) {
+          console.error(err);
         }
+      }
 
-        async function submitComment() {
-            const content = document.getElementById("commentInput").value;
-            const userId = localStorage.getItem("userId");
-            if (!userId) return alert("请先登录");
-            try {
-                await axios.post("http://localhost:8081/api/comments", {
-                    item_id: itemId,
-                    user_id: userId,
-                    content: content
-                });
-                document.getElementById("commentInput").value = "";
-                loadComments();
-            } catch (err) { alert("评价失败"); }
+      async function submitComment() {
+        const content = document.getElementById("commentInput").value;
+        const userId = localStorage.getItem("userId");
+        if (!userId) return alert("请先登录");
+        try {
+          await axios.post("http://localhost:8081/api/comments", {
+            item_id: itemId,
+            user_id: userId,
+            content: content,
+          });
+          document.getElementById("commentInput").value = "";
+          loadComments();
+        } catch (err) {
+          alert("评价失败");
         }
+      }
 
-        // --- 举报功能 (独立函数，不再嵌套) ---
+      // --- 举报功能 (独立函数，不再嵌套) ---
 
-        function openReportModal() {
-            const userId = localStorage.getItem("userId");
-            if (!userId || userId === "undefined") {
-                alert("请先登录后再举报");
-                window.location.href = "logIn.html";
-                return;
-            }
-            document.getElementById("reportModal").style.display = "flex";
+      function openReportModal() {
+        const userId = localStorage.getItem("userId");
+        if (!userId || userId === "undefined") {
+          alert("请先登录后再举报");
+          window.location.href = "logIn.html";
+          return;
         }
+        document.getElementById("reportModal").style.display = "flex";
+      }
 
-        function closeReportModal() {
-            document.getElementById("reportModal").style.display = "none";
+      function closeReportModal() {
+        document.getElementById("reportModal").style.display = "none";
+      }
+
+      async function submitReport() {
+        const reporterId = localStorage.getItem("userId");
+        const reason = document.getElementById("reportReason").value;
+        const desc = document.getElementById("reportDesc").value;
+
+        const reportData = {
+          itemId: parseInt(itemId), // 对应 Java 的 itemId
+          reporterId: parseInt(reporterId),
+          reason: reason,
+          description: desc,
+        };
+
+        try {
+          const res = await axios.post(
+            "http://localhost:8081/api/reports",
+            reportData,
+          );
+          if (res.data.code === 200) {
+            alert("举报已提交，感谢您的监督！");
+            closeReportModal();
+          }
+        } catch (err) {
+          alert("提交失败，请检查后端服务是否启动");
         }
+      }
 
-        async function submitReport() {
-            const reporterId = localStorage.getItem("userId");
-            const reason = document.getElementById("reportReason").value;
-            const desc = document.getElementById("reportDesc").value;
-
-            const reportData = {
-                itemId: parseInt(itemId),      // 对应 Java 的 itemId
-                reporterId: parseInt(reporterId),
-                reason: reason,
-                description: desc
-            };
-
-            try {
-                const res = await axios.post("http://localhost:8081/api/reports", reportData);
-                if (res.data.code === 200) {
-                    alert("举报已提交，感谢您的监督！");
-                    closeReportModal();
-                }
-            } catch (err) {
-                alert("提交失败，请检查后端服务是否启动");
-            }
-        }
-
-        function logout() {
-            localStorage.clear();
-            window.location.href = "logIn.html";
-        }
+      function logout() {
+        localStorage.clear();
+        window.location.href = "logIn.html";
+      }
     </script>
     <script>
       window.detailPageState = {
@@ -722,7 +737,9 @@
       };
 
       window.onload = function () {
-        const detailItemId = new URLSearchParams(window.location.search).get("id");
+        const detailItemId = new URLSearchParams(window.location.search).get(
+          "id",
+        );
         if (!detailItemId) {
           alert("未找到物品 ID");
           window.location.href = "home.html";
@@ -753,7 +770,11 @@
       }
 
       function cleanDescription(description) {
-        return (description || "").replace(/\s*[\(（]联系方式[:：][^)）]+[\)）]\s*$/, "").trim() || "-";
+        return (
+          (description || "")
+            .replace(/\s*[\(（]联系方式[:：][^)）]+[\)）]\s*$/, "")
+            .trim() || "-"
+        );
       }
 
       function getDetailStatusText(status) {
@@ -770,12 +791,17 @@
 
       async function loadItemDetail() {
         try {
-          const res = await axios.get(`http://localhost:8081/api/items/${window.detailPageState.itemId}`);
+          const res = await axios.get(
+            `http://localhost:8081/api/items/${window.detailPageState.itemId}`,
+          );
           const item = res.data || {};
           window.detailPageState.item = item;
 
-          document.querySelector(".item-name").innerText = item.item_name || "未命名物品";
-          document.querySelector(".item-desc").innerText = cleanDescription(item.description);
+          document.querySelector(".item-name").innerText =
+            item.item_name || "未命名物品";
+          document.querySelector(".item-desc").innerText = cleanDescription(
+            item.description,
+          );
 
           const infoValues = document.querySelectorAll(".info-value");
           infoValues[0].innerText = item.location || "-";
@@ -803,9 +829,11 @@
           const publisherNameEl = document.querySelector(".publisher-name");
           const publisherTimeEl = document.querySelector(".publisher-time");
 
-          if (publisherAvatar) publisherAvatar.textContent = publisherName.charAt(0).toUpperCase();
+          if (publisherAvatar)
+            publisherAvatar.textContent = publisherName.charAt(0).toUpperCase();
           if (publisherNameEl) publisherNameEl.textContent = publisherName;
-          if (publisherTimeEl) publisherTimeEl.textContent = `发布于 ${item.created_at || item.create_time || "-"}`;
+          if (publisherTimeEl)
+            publisherTimeEl.textContent = `发布于 ${item.created_at || item.create_time || "-"}`;
         } catch (err) {
           console.error("加载详情失败", err);
           alert("加载详情失败");
@@ -814,7 +842,9 @@
 
       async function loadComments() {
         try {
-          const res = await axios.get(`http://localhost:8081/api/comments?itemId=${window.detailPageState.itemId}`);
+          const res = await axios.get(
+            `http://localhost:8081/api/comments?itemId=${window.detailPageState.itemId}`,
+          );
           const list = document.getElementById("commentsList");
           list.innerHTML = (res.data || [])
             .map(
@@ -927,7 +957,9 @@
           toast.style.transform = "translateX(-50%) translateY(20px)";
           toast.style.padding = "12px 18px";
           toast.style.borderRadius = "999px";
-          toast.style.background = isError ? "rgba(183, 29, 29, 0.92)" : "rgba(84, 150, 135, 0.95)";
+          toast.style.background = isError
+            ? "rgba(183, 29, 29, 0.92)"
+            : "rgba(84, 150, 135, 0.95)";
           toast.style.color = "#fff";
           toast.style.fontSize = "14px";
           toast.style.boxShadow = "0 10px 24px rgba(0, 0, 0, 0.18)";
@@ -955,7 +987,11 @@
         }
 
         function cleanDescription(description) {
-          return (description || "").replace(/\s*[\(（]联系方式[:：][^)）]+[\)）]\s*$/, "").trim() || "-";
+          return (
+            (description || "")
+              .replace(/\s*[\(（]联系方式[:：][^)）]+[\)）]\s*$/, "")
+              .trim() || "-"
+          );
         }
 
         function statusText(status) {
@@ -976,11 +1012,13 @@
             window.location.href = "home.html";
             return;
           }
-          document.getElementById("usernameDisplay").textContent = localStorage.getItem("username") || "";
+          document.getElementById("usernameDisplay").textContent =
+            localStorage.getItem("username") || "";
           const commentInput = document.getElementById("commentInput");
           if (commentInput) {
             commentInput.addEventListener("keydown", function (event) {
-              if (event.ctrlKey && event.key === "Enter") window.submitComment();
+              if (event.ctrlKey && event.key === "Enter")
+                window.submitComment();
             });
           }
           window.loadItemDetail();
@@ -988,43 +1026,69 @@
         };
 
         window.loadItemDetail = async function () {
-          const res = await axios.get(`http://localhost:8081/api/items/${state.itemId}`);
+          const res = await axios.get(
+            `http://localhost:8081/api/items/${state.itemId}`,
+          );
           state.item = res.data || {};
           const detailImage = document.querySelector(".detail-image");
           if (detailImage) {
             detailImage.src = state.item.image_url || "blank-image.svg";
             detailImage.alt = state.item.item_name || "帖子图片";
           }
-          document.querySelector(".item-name").innerText = state.item.item_name || "-";
-          document.querySelector(".item-desc").innerText = cleanDescription(state.item.description);
+          document.querySelector(".item-name").innerText =
+            state.item.item_name || "-";
+          document.querySelector(".item-desc").innerText = cleanDescription(
+            state.item.description,
+          );
           const infoValues = document.querySelectorAll(".info-value");
           infoValues[0].innerText = state.item.location || "-";
           infoValues[1].innerText = state.item.lost_found_time || "-";
-          infoValues[2].innerText = state.item.created_at || state.item.create_time || "-";
+          infoValues[2].innerText =
+            state.item.created_at || state.item.create_time || "-";
           infoValues[3].innerText = contactInfo(state.item.description);
           const statusBadge = document.querySelector(".badge-pending");
-          if (statusBadge) statusBadge.innerText = statusText(state.item.status);
+          if (statusBadge)
+            statusBadge.innerText = statusText(state.item.status);
           const publisherName = state.item.username || "-";
           const publisherAvatar = document.querySelector(".publisher-avatar");
-          if (publisherAvatar) publisherAvatar.textContent = publisherName.charAt(0).toUpperCase();
+          if (publisherAvatar)
+            publisherAvatar.textContent = publisherName.charAt(0).toUpperCase();
           const publisherNameEl = document.querySelector(".publisher-name");
           if (publisherNameEl) publisherNameEl.textContent = publisherName;
           const publisherTimeEl = document.querySelector(".publisher-time");
-          if (publisherTimeEl) publisherTimeEl.textContent = state.item.created_at || state.item.create_time || "-";
+          if (publisherTimeEl)
+            publisherTimeEl.textContent =
+              state.item.created_at || state.item.create_time || "-";
         };
 
         window.loadComments = async function () {
-          const res = await axios.get(`http://localhost:8081/api/comments?itemId=${state.itemId}`);
-          document.getElementById("commentsList").innerHTML = (res.data || []).map(function (comment) {
-            return '<div style="border-bottom: 1px solid #eee; padding: 10px 0;"><strong>' + comment.username + '</strong> <small style="color:#999;">' + (comment.create_time || "-") + '</small><p>' + comment.content + "</p></div>";
-          }).join("");
+          const res = await axios.get(
+            `http://localhost:8081/api/comments?itemId=${state.itemId}`,
+          );
+          document.getElementById("commentsList").innerHTML = (res.data || [])
+            .map(function (comment) {
+              return (
+                '<div style="border-bottom: 1px solid #eee; padding: 10px 0;"><strong>' +
+                comment.username +
+                '</strong> <small style="color:#999;">' +
+                (comment.create_time || "-") +
+                "</small><p>" +
+                comment.content +
+                "</p></div>"
+              );
+            })
+            .join("");
         };
 
         window.submitComment = async function () {
           const content = document.getElementById("commentInput").value.trim();
           const userId = localStorage.getItem("userId");
           if (!userId || !content) return;
-          await axios.post("http://localhost:8081/api/comments", { item_id: state.itemId, user_id: userId, content });
+          await axios.post("http://localhost:8081/api/comments", {
+            item_id: state.itemId,
+            user_id: userId,
+            content,
+          });
           document.getElementById("commentInput").value = "";
           await window.loadComments();
         };
@@ -1068,7 +1132,10 @@
             }
             showToast("\u94fe\u63a5\u5df2\u590d\u5236");
           } catch (err) {
-            showToast("\u590d\u5236\u5931\u8d25\uff0c\u8bf7\u624b\u52a8\u590d\u5236\u5730\u5740\u680f\u94fe\u63a5", true);
+            showToast(
+              "\u590d\u5236\u5931\u8d25\uff0c\u8bf7\u624b\u52a8\u590d\u5236\u5730\u5740\u680f\u94fe\u63a5",
+              true,
+            );
           }
         };
 
@@ -1115,26 +1182,26 @@
 
           <div class="detail-info">
             <h2 class="item-name">加载中...</h2>
-<p class="item-desc">正在获取详情内容，请稍候...</p>
+            <p class="item-desc">正在获取详情内容，请稍候...</p>
 
-<div class="info-grid">
-  <div class="info-box">
-    <span class="info-label">地点</span>
-    <span class="info-value">-</span>
-  </div>
-  <div class="info-box">
-    <span class="info-label">时间</span>
-    <span class="info-value">-</span>
-  </div>
-  <div class="info-box">
-    <span class="info-label">发布时间</span>
-    <span class="info-value">-</span>
-  </div>
-  <div class="info-box">
-    <span class="info-label">联系方式</span>
-    <span class="info-value">-</span>
-  </div>
-</div>
+            <div class="info-grid">
+              <div class="info-box">
+                <span class="info-label">地点</span>
+                <span class="info-value">-</span>
+              </div>
+              <div class="info-box">
+                <span class="info-label">时间</span>
+                <span class="info-value">-</span>
+              </div>
+              <div class="info-box">
+                <span class="info-label">发布时间</span>
+                <span class="info-value">-</span>
+              </div>
+              <div class="info-box">
+                <span class="info-label">联系方式</span>
+                <span class="info-value">-</span>
+              </div>
+            </div>
 
             <div class="publisher-panel">
               <div class="publisher-avatar">张</div>
@@ -1149,7 +1216,6 @@
               <button class="btn btn-danger" onclick="openReportModal()">
                 举报帖子
               </button>
-              
             </div>
           </div>
         </div>
@@ -1179,21 +1245,72 @@
     </div>
 
     <!-- 举报模态框 -->
-    <div id="reportModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center;">
-    <div style="background: white; padding: 20px; border-radius: 8px; width: 300px;">
+    <div
+      id="reportModal"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+      "
+    >
+      <div
+        style="
+          background: white;
+          padding: 20px;
+          border-radius: 8px;
+          width: 300px;
+        "
+      >
         <h3>举报原因</h3>
-        <select id="reportReason" style="width: 100%; margin: 10px 0; padding: 5px;">
-            <option value="信息虚假">信息虚假</option>
-            <option value="广告骚扰">广告骚扰</option>
-            <option value="其他">其他</option>
+        <select
+          id="reportReason"
+          style="width: 100%; margin: 10px 0; padding: 5px"
+        >
+          <option value="信息虚假">信息虚假</option>
+          <option value="广告骚扰">广告骚扰</option>
+          <option value="其他">其他</option>
         </select>
-        <textarea id="reportDesc" placeholder="详细说明" style="width: 100%; height: 60px;"></textarea>
-        <div style="margin-top: 10px; display: flex; gap: 10px;">
-            <button onclick="submitReport()" style="flex: 1; background: #549687; color: white; border: none; padding: 8px; border-radius: 4px;">提交</button>
-            <button onclick="closeReportModal()" style="flex: 1; background: #ccc; border: none; padding: 8px; border-radius: 4px;">取消</button>
+        <textarea
+          id="reportDesc"
+          placeholder="详细说明"
+          style="width: 100%; height: 60px"
+        ></textarea>
+        <div style="margin-top: 10px; display: flex; gap: 10px">
+          <button
+            onclick="submitReport()"
+            style="
+              flex: 1;
+              background: #549687;
+              color: white;
+              border: none;
+              padding: 8px;
+              border-radius: 4px;
+            "
+          >
+            提交
+          </button>
+          <button
+            onclick="closeReportModal()"
+            style="
+              flex: 1;
+              background: #ccc;
+              border: none;
+              padding: 8px;
+              border-radius: 4px;
+            "
+          >
+            取消
+          </button>
         </div>
+      </div>
     </div>
-</div>
     <div class="page-foot">
       <p class="copyright">版权所有 © 2026 校园寻物系统</p>
     </div>
